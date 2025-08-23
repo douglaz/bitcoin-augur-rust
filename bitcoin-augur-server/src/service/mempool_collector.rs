@@ -173,6 +173,12 @@ impl MempoolCollector {
         // Get recent snapshots
         let snapshots = self.snapshot_store.get_recent_snapshots(24)?;
 
+        debug!(
+            "get_estimate_for_blocks: num_blocks={}, snapshots_count={}",
+            num_blocks,
+            snapshots.len()
+        );
+
         if snapshots.is_empty() {
             return Ok(FeeEstimate::empty(Utc::now()));
         }
@@ -181,6 +187,12 @@ impl MempoolCollector {
         let estimate = self
             .fee_estimator
             .calculate_estimates(&snapshots, Some(num_blocks))?;
+
+        debug!(
+            "get_estimate_for_blocks: estimate has {} targets",
+            estimate.estimates.len()
+        );
+
         Ok(estimate)
     }
 

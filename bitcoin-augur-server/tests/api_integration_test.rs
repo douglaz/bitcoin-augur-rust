@@ -11,7 +11,8 @@ use tempfile::TempDir;
 use tower::ServiceExt;
 
 /// Create test app with mock collector
-async fn create_test_app() -> anyhow::Result<axum::Router> {
+/// Returns both the app and the TempDir to keep it alive
+async fn create_test_app() -> anyhow::Result<(axum::Router, TempDir)> {
     let temp_dir = TempDir::new()?;
     let config = BitcoinRpcConfig {
         url: "http://localhost:8332".to_string(),
@@ -38,7 +39,7 @@ async fn create_test_app() -> anyhow::Result<axum::Router> {
     // Initialize the collector with estimates from the saved snapshots
     collector.initialize_from_store().await?;
 
-    Ok(create_app(collector))
+    Ok((create_app(collector), temp_dir))
 }
 
 /// Create test snapshots with realistic data
@@ -71,7 +72,7 @@ fn create_test_snapshots() -> Vec<MempoolSnapshot> {
 
 #[tokio::test]
 async fn test_health_endpoint() -> anyhow::Result<()> {
-    let app = create_test_app().await?;
+    let (app, _temp_dir) = create_test_app().await?;
 
     let response = app
         .oneshot(
@@ -92,7 +93,7 @@ async fn test_health_endpoint() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn test_fees_endpoint() -> anyhow::Result<()> {
-    let app = create_test_app().await?;
+    let (app, _temp_dir) = create_test_app().await?;
 
     let response = app
         .oneshot(
@@ -133,7 +134,7 @@ async fn test_fees_endpoint() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn test_fees_target_endpoint() -> anyhow::Result<()> {
-    let app = create_test_app().await?;
+    let (app, _temp_dir) = create_test_app().await?;
 
     let response = app
         .oneshot(
@@ -167,7 +168,7 @@ async fn test_fees_target_endpoint() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn test_invalid_target() -> anyhow::Result<()> {
-    let app = create_test_app().await?;
+    let (app, _temp_dir) = create_test_app().await?;
 
     let response = app
         .oneshot(
@@ -185,10 +186,10 @@ async fn test_invalid_target() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn test_historical_endpoint() -> anyhow::Result<()> {
-    let app = create_test_app().await?;
+    let (app, _temp_dir) = create_test_app().await?;
 
-    // Test with a specific timestamp
-    let timestamp = Utc::now().timestamp();
+    // Test with a timestamp that falls within our test data range (20 minutes ago)
+    let timestamp = (Utc::now() - chrono::Duration::minutes(20)).timestamp();
     let response = app
         .oneshot(
             axum::http::Request::builder()
@@ -211,7 +212,7 @@ async fn test_historical_endpoint() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn test_historical_missing_timestamp() -> anyhow::Result<()> {
-    let app = create_test_app().await?;
+    let (app, _temp_dir) = create_test_app().await?;
 
     let response = app
         .oneshot(
@@ -229,7 +230,7 @@ async fn test_historical_missing_timestamp() -> anyhow::Result<()> {
 
 #[tokio::test]
 async fn test_concurrent_requests() -> anyhow::Result<()> {
-    let app = create_test_app().await?;
+    let (app, _temp_dir) = create_test_app().await?;
 
     // Send multiple concurrent requests
     let mut handles = vec![];
