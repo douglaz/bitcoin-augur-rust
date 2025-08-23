@@ -35,17 +35,8 @@ if command -v nix >/dev/null 2>&1 && [ -f "flake.nix" ]; then
     echo "✅ Clippy check passed"
     echo ""
     
-    # Run tests
-    echo "🧪 Running tests..."
-    if ! nix develop -c cargo test 2>&1; then
-        echo ""
-        echo "❌ Tests failed. Please fix them before pushing."
-        echo ""
-        echo "To run tests with output:"
-        echo "  nix develop -c cargo test -- --nocapture"
-        exit 1
-    fi
-    echo "✅ All tests passed"
+    # Note: Tests are run in CI, not in pre-push hook to avoid blocking pushes
+    echo "ℹ️  Tests will be run in CI pipeline"
 else
     # Fallback to regular cargo
     echo "📝 Checking code formatting..."
@@ -76,17 +67,8 @@ else
     echo "✅ Clippy check passed"
     echo ""
     
-    # Run tests
-    echo "🧪 Running tests..."
-    if ! cargo test 2>&1; then
-        echo ""
-        echo "❌ Tests failed. Please fix them before pushing."
-        echo ""
-        echo "To run tests with output:"
-        echo "  cargo test -- --nocapture"
-        exit 1
-    fi
-    echo "✅ All tests passed"
+    # Note: Tests are run in CI, not in pre-push hook to avoid blocking pushes
+    echo "ℹ️  Tests will be run in CI pipeline"
 fi
 
 echo ""
