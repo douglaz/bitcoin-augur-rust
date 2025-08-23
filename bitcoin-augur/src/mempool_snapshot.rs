@@ -29,10 +29,10 @@ use crate::mempool_transaction::MempoolTransaction;
 pub struct MempoolSnapshot {
     /// The Bitcoin block height when this snapshot was taken
     pub block_height: u32,
-    
+
     /// When this snapshot was taken
     pub timestamp: DateTime<Utc>,
-    
+
     /// Map of fee rate bucket indices to total transaction weight
     /// The key is the bucket index (calculated logarithmically)
     /// The value is the total weight in that bucket
@@ -52,7 +52,7 @@ impl MempoolSnapshot {
             bucketed_weights,
         }
     }
-    
+
     /// Creates a mempool snapshot from a list of mempool transactions.
     ///
     /// This method processes the raw transactions, buckets them by fee rate,
@@ -67,15 +67,16 @@ impl MempoolSnapshot {
         block_height: u32,
         timestamp: DateTime<Utc>,
     ) -> Self {
-        let bucketed_weights = crate::internal::bucket_creator::create_fee_rate_buckets(&transactions);
-        
+        let bucketed_weights =
+            crate::internal::bucket_creator::create_fee_rate_buckets(&transactions);
+
         Self {
             block_height,
             timestamp,
             bucketed_weights,
         }
     }
-    
+
     /// Creates an empty mempool snapshot.
     ///
     /// This can be useful for testing or when no mempool data is available.
@@ -86,12 +87,12 @@ impl MempoolSnapshot {
             bucketed_weights: BTreeMap::new(),
         }
     }
-    
+
     /// Returns the total weight across all buckets.
     pub fn total_weight(&self) -> u64 {
         self.bucketed_weights.values().sum()
     }
-    
+
     /// Returns the number of fee rate buckets.
     pub fn bucket_count(&self) -> usize {
         self.bucketed_weights.len()
@@ -101,7 +102,7 @@ impl MempoolSnapshot {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_empty_snapshot() {
         let snapshot = MempoolSnapshot::empty(850000, Utc::now());
@@ -109,16 +110,16 @@ mod tests {
         assert_eq!(snapshot.total_weight(), 0);
         assert_eq!(snapshot.bucket_count(), 0);
     }
-    
+
     #[test]
     fn test_snapshot_metadata() {
         let now = Utc::now();
         let mut buckets = BTreeMap::new();
         buckets.insert(100, 1000);
         buckets.insert(200, 2000);
-        
+
         let snapshot = MempoolSnapshot::new(850000, now, buckets);
-        
+
         assert_eq!(snapshot.block_height, 850000);
         assert_eq!(snapshot.timestamp, now);
         assert_eq!(snapshot.total_weight(), 3000);

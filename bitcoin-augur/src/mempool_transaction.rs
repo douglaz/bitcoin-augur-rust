@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 pub struct MempoolTransaction {
     /// The transaction weight in weight units (WU)
     pub weight: u64,
-    
+
     /// The transaction fee in satoshis
     pub fee: u64,
 }
@@ -32,7 +32,7 @@ impl MempoolTransaction {
     pub fn new(weight: u64, fee: u64) -> Self {
         Self { weight, fee }
     }
-    
+
     /// Calculates the transaction's fee rate in sat/vB.
     ///
     /// This converts from weight units to virtual bytes and calculates
@@ -57,19 +57,19 @@ pub const WU_PER_BYTE: f64 = 4.0;
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_fee_rate_calculation() {
         let tx = MempoolTransaction::new(400, 1000);
         assert_eq!(tx.fee_rate(), 10.0); // 1000 * 4 / 400 = 10 sat/vB
     }
-    
+
     #[test]
     fn test_fee_rate_with_zero_weight() {
         let tx = MempoolTransaction::new(0, 1000);
         assert_eq!(tx.fee_rate(), 0.0);
     }
-    
+
     #[test]
     fn test_fee_rate_precision() {
         let tx = MempoolTransaction::new(565, 1000);

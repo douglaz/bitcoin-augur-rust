@@ -11,13 +11,13 @@ use tracing::{debug, error, info};
 pub enum PersistenceError {
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
-    
+
     #[error("JSON serialization error: {0}")]
     JsonError(#[from] serde_json::Error),
-    
+
     #[error("Invalid path: {0}")]
     InvalidPath(String),
-    
+
     #[error("Invalid timestamp: {0}")]
     InvalidTimestamp(i64),
 }
@@ -31,22 +31,22 @@ impl SnapshotStore {
     /// Creates a new snapshot store with the specified data directory
     pub fn new(data_dir: impl AsRef<Path>) -> Result<Self, PersistenceError> {
         let data_dir = data_dir.as_ref().to_path_buf();
-        
+
         // Ensure the data directory exists
         fs::create_dir_all(&data_dir)?;
-        
+
         info!("Initialized snapshot store at: {}", data_dir.display());
-        
+
         Ok(Self { data_dir })
     }
-    
+
     /// Saves a mempool snapshot to disk
     pub fn save_snapshot(&self, snapshot: &MempoolSnapshot) -> Result<(), PersistenceError> {
         // Create directory structure: data/YYYY-MM-DD/
         let date_str = snapshot.timestamp.format("%Y-%m-%d").to_string();
         let date_dir = self.data_dir.join(&date_str);
         fs::create_dir_all(&date_dir)?;
-        
+
         // Create filename: blockheight_timestamp.json
         let filename = format!(
             "{}_{}.json",
@@ -54,16 +54,16 @@ impl SnapshotStore {
             snapshot.timestamp.timestamp()
         );
         let file_path = date_dir.join(filename);
-        
+
         // Serialize and save snapshot
         let json = serde_json::to_string_pretty(snapshot)?;
         fs::write(&file_path, json)?;
-        
+
         debug!("Saved snapshot to: {}", file_path.display());
-        
+
         Ok(())
     }
-    
+
     /// Retrieves snapshots within a time range
     pub fn get_snapshots(
         &self,
@@ -71,28 +71,28 @@ impl SnapshotStore {
         end: DateTime<Local>,
     ) -> Result<Vec<MempoolSnapshot>, PersistenceError> {
         let mut snapshots = Vec::new();
-        
+
         // Iterate through date directories
         let mut current_date = start.date_naive();
         let end_date = end.date_naive();
-        
+
         while current_date <= end_date {
             let date_str = current_date.format("%Y-%m-%d").to_string();
             let date_dir = self.data_dir.join(&date_str);
-            
+
             if date_dir.exists() && date_dir.is_dir() {
                 // Read all JSON files in the directory
                 for entry in fs::read_dir(&date_dir)? {
                     let entry = entry?;
                     let path = entry.path();
-                    
+
                     if path.extension().and_then(|s| s.to_str()) == Some("json") {
                         // Parse the filename to check if it's within our time range
                         if let Some(timestamp) = Self::extract_timestamp_from_filename(&path) {
                             let snapshot_time = DateTime::from_timestamp(timestamp, 0)
                                 .ok_or(PersistenceError::InvalidTimestamp(timestamp))?
                                 .with_timezone(&Local);
-                            
+
                             if snapshot_time >= start && snapshot_time <= end {
                                 // Load and parse the snapshot
                                 let content = fs::read_to_string(&path)?;
@@ -103,37 +103,41 @@ impl SnapshotStore {
                     }
                 }
             }
-            
+
             // Move to next day
-            current_date = current_date.succ_opt()
+            current_date = current_date
+                .succ_opt()
                 .ok_or_else(|| PersistenceError::InvalidPath("Date overflow".to_string()))?;
         }
-        
+
         // Sort snapshots by timestamp
         snapshots.sort_by_key(|s| s.timestamp);
-        
-        debug!("Retrieved {} snapshots from {} to {}", 
-               snapshots.len(), start.format("%Y-%m-%d %H:%M:%S"), 
-               end.format("%Y-%m-%d %H:%M:%S"));
-        
+
+        debug!(
+            "Retrieved {} snapshots from {} to {}",
+            snapshots.len(),
+            start.format("%Y-%m-%d %H:%M:%S"),
+            end.format("%Y-%m-%d %H:%M:%S")
+        );
+
         Ok(snapshots)
     }
-    
+
     /// Gets the most recent snapshot
     pub fn get_latest_snapshot(&self) -> Result<Option<MempoolSnapshot>, PersistenceError> {
         let mut latest: Option<(i64, PathBuf)> = None;
-        
+
         // Scan all date directories
         for entry in fs::read_dir(&self.data_dir)? {
             let entry = entry?;
             let path = entry.path();
-            
+
             if path.is_dir() {
                 // Scan JSON files in this directory
                 for file_entry in fs::read_dir(&path)? {
                     let file_entry = file_entry?;
                     let file_path = file_entry.path();
-                    
+
                     if file_path.extension().and_then(|s| s.to_str()) == Some("json") {
                         if let Some(timestamp) = Self::extract_timestamp_from_filename(&file_path) {
                             if latest.is_none() || timestamp > latest.as_ref().unwrap().0 {
@@ -144,7 +148,7 @@ impl SnapshotStore {
                 }
             }
         }
-        
+
         if let Some((_, path)) = latest {
             let content = fs::read_to_string(&path)?;
             let snapshot: MempoolSnapshot = serde_json::from_str(&content)?;
@@ -153,23 +157,26 @@ impl SnapshotStore {
             Ok(None)
         }
     }
-    
+
     /// Gets snapshots from the last N hours
-    pub fn get_recent_snapshots(&self, hours: i64) -> Result<Vec<MempoolSnapshot>, PersistenceError> {
+    pub fn get_recent_snapshots(
+        &self,
+        hours: i64,
+    ) -> Result<Vec<MempoolSnapshot>, PersistenceError> {
         let end = Local::now();
         let start = end - chrono::Duration::hours(hours);
         self.get_snapshots(start, end)
     }
-    
+
     /// Cleans up old snapshots older than the specified number of days
     pub fn cleanup_old_snapshots(&self, days_to_keep: i64) -> Result<usize, PersistenceError> {
         let cutoff_date = Local::now().date_naive() - chrono::Duration::days(days_to_keep);
         let mut deleted_count = 0;
-        
+
         for entry in fs::read_dir(&self.data_dir)? {
             let entry = entry?;
             let path = entry.path();
-            
+
             if path.is_dir() {
                 // Parse directory name as date
                 if let Some(dir_name) = path.file_name().and_then(|n| n.to_str()) {
@@ -184,15 +191,15 @@ impl SnapshotStore {
                 }
             }
         }
-        
+
         Ok(deleted_count)
     }
-    
+
     /// Extracts timestamp from snapshot filename
     fn extract_timestamp_from_filename(path: &Path) -> Option<i64> {
         let filename = path.file_stem()?.to_str()?;
         let parts: Vec<&str> = filename.split('_').collect();
-        
+
         if parts.len() >= 2 {
             parts.last()?.parse().ok()
         } else {
@@ -206,52 +213,48 @@ mod tests {
     use super::*;
     use bitcoin_augur::MempoolTransaction;
     use tempfile::TempDir;
-    
+
     #[test]
     fn test_snapshot_store_creation() -> Result<(), PersistenceError> {
         let temp_dir = TempDir::new().unwrap();
         let store = SnapshotStore::new(temp_dir.path())?;
-        
+
         // Check that directory was created
         assert!(temp_dir.path().exists());
-        
+
         Ok(())
     }
-    
+
     #[test]
     fn test_save_and_retrieve_snapshot() -> Result<(), PersistenceError> {
         let temp_dir = TempDir::new().unwrap();
         let store = SnapshotStore::new(temp_dir.path())?;
-        
+
         // Create a test snapshot
         let transactions = vec![
             MempoolTransaction::new(400, 1000),
             MempoolTransaction::new(600, 1500),
         ];
-        
-        let snapshot = MempoolSnapshot::from_transactions(
-            transactions,
-            850000,
-            Utc::now(),
-        );
-        
+
+        let snapshot = MempoolSnapshot::from_transactions(transactions, 850000, Utc::now());
+
         // Save the snapshot
         store.save_snapshot(&snapshot)?;
-        
+
         // Retrieve snapshots from the last hour
         let retrieved = store.get_recent_snapshots(1)?;
-        
+
         assert_eq!(retrieved.len(), 1);
         assert_eq!(retrieved[0].block_height, 850000);
-        
+
         Ok(())
     }
-    
+
     #[test]
     fn test_get_latest_snapshot() -> Result<(), PersistenceError> {
         let temp_dir = TempDir::new().unwrap();
         let store = SnapshotStore::new(temp_dir.path())?;
-        
+
         // Save multiple snapshots
         for i in 0..3 {
             let snapshot = MempoolSnapshot::from_transactions(
@@ -262,37 +265,34 @@ mod tests {
             store.save_snapshot(&snapshot)?;
             std::thread::sleep(std::time::Duration::from_millis(100));
         }
-        
+
         // Get the latest
         let latest = store.get_latest_snapshot()?.unwrap();
         assert_eq!(latest.block_height, 850002);
-        
+
         Ok(())
     }
-    
+
     #[test]
     fn test_cleanup_old_snapshots() -> Result<(), PersistenceError> {
         let temp_dir = TempDir::new().unwrap();
         let store = SnapshotStore::new(temp_dir.path())?;
-        
+
         // Create an old snapshot (3 days ago)
         let old_time = Utc::now() - chrono::Duration::days(3);
-        let old_snapshot = MempoolSnapshot::new(
-            850000,
-            old_time,
-            std::collections::BTreeMap::new(),
-        );
-        
+        let old_snapshot =
+            MempoolSnapshot::new(850000, old_time, std::collections::BTreeMap::new());
+
         // Save it with manual path to ensure old date
         let date_str = old_time.format("%Y-%m-%d").to_string();
         let date_dir = temp_dir.path().join(&date_str);
         fs::create_dir_all(&date_dir)?;
-        
+
         let filename = format!("{}_{}.json", 850000, old_time.timestamp());
         let file_path = date_dir.join(filename);
         let json = serde_json::to_string_pretty(&old_snapshot)?;
         fs::write(&file_path, json)?;
-        
+
         // Also create a recent snapshot
         let recent_snapshot = MempoolSnapshot::from_transactions(
             vec![MempoolTransaction::new(400, 1000)],
@@ -300,16 +300,16 @@ mod tests {
             Utc::now(),
         );
         store.save_snapshot(&recent_snapshot)?;
-        
+
         // Clean up snapshots older than 2 days
         let deleted = store.cleanup_old_snapshots(2)?;
         assert_eq!(deleted, 1);
-        
+
         // Verify recent snapshot still exists
         let remaining = store.get_recent_snapshots(1)?;
         assert_eq!(remaining.len(), 1);
         assert_eq!(remaining[0].block_height, 850001);
-        
+
         Ok(())
     }
 }

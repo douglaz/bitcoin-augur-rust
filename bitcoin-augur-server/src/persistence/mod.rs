@@ -2,4 +2,4 @@
 
 mod snapshot_store;
 
-pub use snapshot_store::{SnapshotStore, PersistenceError};
+pub use snapshot_store::{PersistenceError, SnapshotStore};

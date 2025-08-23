@@ -1,4 +1,4 @@
-use bitcoin_augur::{FeeEstimate, BlockTarget};
+use bitcoin_augur::{BlockTarget, FeeEstimate};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -9,7 +9,7 @@ pub struct FeeEstimateResponse {
     /// ISO 8601 formatted timestamp of when the mempool was last updated
     #[serde(rename = "mempool_update_time")]
     pub mempool_update_time: String,
-    
+
     /// Map of block targets to their probability estimates
     pub estimates: HashMap<String, BlockTargetResponse>,
 }
@@ -31,7 +31,8 @@ pub struct ProbabilityResponse {
 
 /// Transform internal FeeEstimate to API response format
 pub fn transform_fee_estimate(estimate: FeeEstimate) -> FeeEstimateResponse {
-    let estimates = estimate.estimates
+    let estimates = estimate
+        .estimates
         .into_iter()
         .map(|(block_num, target)| {
             let block_key = block_num.to_string();
@@ -39,7 +40,7 @@ pub fn transform_fee_estimate(estimate: FeeEstimate) -> FeeEstimateResponse {
             (block_key, BlockTargetResponse { probabilities })
         })
         .collect();
-    
+
     FeeEstimateResponse {
         mempool_update_time: format_timestamp(estimate.timestamp),
         estimates,
@@ -48,20 +49,24 @@ pub fn transform_fee_estimate(estimate: FeeEstimate) -> FeeEstimateResponse {
 
 /// Transform internal BlockTarget to API format
 fn transform_block_target(target: BlockTarget) -> HashMap<String, ProbabilityResponse> {
-    target.probabilities
+    target
+        .probabilities
         .into_iter()
         .map(|(prob, fee_rate)| {
             // Format probability with 2 decimal places (e.g., "0.95")
             let prob_key = format!("{:.2}", prob.0);
-            
+
             // Format fee rate with 4 decimal places, matching Kotlin
             let formatted_fee_rate = format!("{:.4}", fee_rate)
                 .parse::<f64>()
                 .unwrap_or(fee_rate);
-            
-            (prob_key, ProbabilityResponse { 
-                fee_rate: formatted_fee_rate 
-            })
+
+            (
+                prob_key,
+                ProbabilityResponse {
+                    fee_rate: formatted_fee_rate,
+                },
+            )
         })
         .collect()
 }
@@ -85,63 +90,63 @@ mod tests {
     use super::*;
     use ordered_float::OrderedFloat;
     use std::collections::BTreeMap;
-    
+
     #[test]
     fn test_transform_fee_estimate() {
         let mut probabilities = BTreeMap::new();
         probabilities.insert(OrderedFloat(0.05), 2.0916);
         probabilities.insert(OrderedFloat(0.50), 3.4846);
         probabilities.insert(OrderedFloat(0.95), 5.0531);
-        
+
         let block_target = BlockTarget {
             blocks: 6,
             probabilities,
         };
-        
+
         let mut estimates = BTreeMap::new();
         estimates.insert(6, block_target);
-        
+
         let fee_estimate = FeeEstimate {
             estimates,
             timestamp: Utc::now(),
         };
-        
+
         let response = transform_fee_estimate(fee_estimate);
-        
+
         assert!(response.estimates.contains_key("6"));
         let target = &response.estimates["6"];
         assert!(target.probabilities.contains_key("0.05"));
         assert!(target.probabilities.contains_key("0.50"));
         assert!(target.probabilities.contains_key("0.95"));
     }
-    
+
     #[test]
     fn test_format_timestamp() {
         let timestamp = DateTime::parse_from_rfc3339("2025-01-20T12:00:00.123Z")
             .unwrap()
             .with_timezone(&Utc);
-        
+
         let formatted = format_timestamp(timestamp);
         assert_eq!(formatted, "2025-01-20T12:00:00.123Z");
     }
-    
+
     #[test]
     fn test_probability_formatting() {
         let mut probabilities = BTreeMap::new();
         probabilities.insert(OrderedFloat(0.05123), 2.091678);
         probabilities.insert(OrderedFloat(0.95456), 5.053189);
-        
+
         let block_target = BlockTarget {
             blocks: 3,
             probabilities,
         };
-        
+
         let transformed = transform_block_target(block_target);
-        
+
         // Check that probabilities are formatted with 2 decimal places
         assert!(transformed.contains_key("0.05"));
         assert!(transformed.contains_key("0.95"));
-        
+
         // Check that fee rates are formatted with 4 decimal places
         assert_eq!(transformed["0.05"].fee_rate, 2.0917);
         assert_eq!(transformed["0.95"].fee_rate, 5.0532);

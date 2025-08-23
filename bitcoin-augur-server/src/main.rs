@@ -33,25 +33,24 @@ async fn main() -> Result<()> {
             tracing_subscriber::fmt::layer()
                 .with_writer(std::io::stderr)
                 .with_target(false)
-                .compact()
+                .compact(),
         )
         .init();
-    
+
     info!("Bitcoin Augur Server starting...");
-    
+
     // Load configuration
-    let config = AppConfig::load()
-        .context("Failed to load configuration")?;
-    
+    let config = AppConfig::load().context("Failed to load configuration")?;
+
     info!("Configuration loaded:");
     info!("  Server: {}:{}", config.server.host, config.server.port);
     info!("  Bitcoin RPC: {}", config.bitcoin_rpc.url);
     info!("  Data directory: {}", config.persistence.data_directory);
     info!("  Collection interval: {}ms", config.collector.interval_ms);
-    
+
     // Initialize Bitcoin RPC client
     let bitcoin_client = BitcoinRpcClient::new(config.to_bitcoin_rpc_config());
-    
+
     // Test Bitcoin connection
     match bitcoin_client.test_connection().await {
         Ok(_) => info!("Successfully connected to Bitcoin Core"),
@@ -61,21 +60,21 @@ async fn main() -> Result<()> {
             // Continue anyway - the collector will retry
         }
     }
-    
+
     // Initialize persistence store
     let snapshot_store = SnapshotStore::new(&config.persistence.data_directory)
         .context("Failed to initialize snapshot store")?;
-    
+
     // Initialize fee estimator
     let fee_estimator = FeeEstimator::new();
-    
+
     // Create mempool collector
     let collector = Arc::new(MempoolCollector::new(
         bitcoin_client,
         snapshot_store,
         fee_estimator,
     ));
-    
+
     // Spawn background collection task
     let collector_handle = collector.clone();
     let interval_ms = config.collector.interval_ms;
@@ -85,7 +84,7 @@ async fn main() -> Result<()> {
             error!("Mempool collector error: {}", e);
         }
     });
-    
+
     // Spawn periodic cleanup task (runs daily)
     let collector_cleanup = collector.clone();
     let cleanup_days = config.persistence.cleanup_days;
@@ -93,22 +92,25 @@ async fn main() -> Result<()> {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(24 * 60 * 60));
         loop {
             interval.tick().await;
-            info!("Running snapshot cleanup (keeping last {} days)", cleanup_days);
+            info!(
+                "Running snapshot cleanup (keeping last {} days)",
+                cleanup_days
+            );
             match collector_cleanup.cleanup_old_snapshots(cleanup_days).await {
                 Ok(deleted) => info!("Cleaned up {} old snapshot directories", deleted),
                 Err(e) => error!("Cleanup failed: {}", e),
             }
         }
     });
-    
+
     // Create and run HTTP server
     let app = create_app(collector);
-    
+
     run_server(app, config.server.host, config.server.port)
         .await
         .context("Failed to run HTTP server")?;
-    
+
     info!("Bitcoin Augur Server shut down");
-    
+
     Ok(())
 }

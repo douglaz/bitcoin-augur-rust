@@ -1,6 +1,5 @@
 /// Internal modules for the bitcoin-augur library.
 /// These are implementation details and should not be used directly by library consumers.
-
 pub(crate) mod bucket_creator;
 pub(crate) mod fee_calculator;
 pub(crate) mod inflow_calculator;
