@@ -1,0 +1,24 @@
+# Test configuration for Bitcoin Augur Server with local Bitcoin node
+
+# HTTP server settings
+server:
+  host: "127.0.0.1"
+  port: 8090
+
+# Bitcoin Core RPC settings (using cookie authentication)
+bitcoin_rpc:
+  url: "http://localhost:8332"
+  username: "__cookie__"
+  password: "844aa2dc4530218cace631625f29f15247bbc388ad165cf21a91a4fcf2188b47"
+
+# Persistence settings
+persistence:
+  # Directory for storing mempool snapshots
+  data_directory: "test_mempool_data"
+  # Number of days to keep old snapshots
+  cleanup_days: 7
+
+# Mempool collector settings
+collector:
+  # How often to collect mempool data (milliseconds)
+  interval_ms: 10000  # 10 seconds for testing
