@@ -131,6 +131,7 @@ impl MempoolCollector {
 
     /// Initialize estimates from stored snapshots (for testing)
     #[doc(hidden)]
+    #[allow(dead_code)]
     pub async fn initialize_from_store(&self) -> Result<(), CollectorError> {
         // Get recent snapshots
         let snapshots = self.snapshot_store.get_recent_snapshots(24)?;
