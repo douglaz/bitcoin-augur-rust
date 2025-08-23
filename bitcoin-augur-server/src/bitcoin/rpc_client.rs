@@ -24,12 +24,14 @@ pub enum RpcError {
     JsonError(#[from] serde_json::Error),
 
     #[error("RPC error: {message}")]
+    #[allow(clippy::enum_variant_names)]
     RpcError { code: i32, message: String },
 
     #[error("Invalid response format")]
     InvalidResponse,
 
     #[error("Missing required field: {0}")]
+    #[allow(dead_code)]
     MissingField(String),
 }
 

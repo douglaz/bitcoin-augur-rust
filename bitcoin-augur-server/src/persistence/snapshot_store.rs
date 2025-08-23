@@ -1,6 +1,5 @@
 use bitcoin_augur::MempoolSnapshot;
 use chrono::{DateTime, Local};
-use serde_json;
 use std::fs;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -124,6 +123,7 @@ impl SnapshotStore {
     }
 
     /// Gets the most recent snapshot
+    #[allow(dead_code)]
     pub fn get_latest_snapshot(&self) -> Result<Option<MempoolSnapshot>, PersistenceError> {
         let mut latest: Option<(i64, PathBuf)> = None;
 

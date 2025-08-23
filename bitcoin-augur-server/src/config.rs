@@ -123,6 +123,7 @@ impl AppConfig {
     }
 
     /// Load configuration from a specific file
+    #[allow(dead_code)]
     pub fn from_file(path: impl AsRef<Path>) -> Result<Self, ConfigError> {
         let mut builder = Config::builder()
             // Default values

@@ -22,6 +22,7 @@ pub enum CollectorError {
     EstimationError(#[from] bitcoin_augur::AugurError),
 
     #[error("Service is shutting down")]
+    #[allow(dead_code)]
     Shutdown,
 }
 
@@ -123,6 +124,7 @@ impl MempoolCollector {
     }
 
     /// Gets the latest mempool snapshot
+    #[allow(dead_code)]
     pub async fn get_latest_snapshot(&self) -> Option<MempoolSnapshot> {
         self.latest_snapshot.read().await.clone()
     }
@@ -176,6 +178,7 @@ impl MempoolCollector {
     }
 
     /// Tests the Bitcoin RPC connection
+    #[allow(dead_code)]
     pub async fn test_connection(&self) -> Result<(), CollectorError> {
         self.bitcoin_client.test_connection().await?;
         Ok(())

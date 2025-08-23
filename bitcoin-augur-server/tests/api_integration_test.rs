@@ -191,7 +191,7 @@ async fn test_historical_endpoint() -> anyhow::Result<()> {
     let response = app
         .oneshot(
             axum::http::Request::builder()
-                .uri(&format!("/historical_fee?timestamp={}", timestamp))
+                .uri(format!("/historical_fee?timestamp={}", timestamp))
                 .body(axum::body::Body::empty())?,
         )
         .await?;
