@@ -35,5 +35,8 @@ TEST_REPORT.md
 *.md
 !README.md
 
+# Local files (developer-specific)
+*.local.*
+
 # Log files
 *.log
