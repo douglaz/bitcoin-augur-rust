@@ -129,6 +129,41 @@ impl MempoolCollector {
         self.latest_snapshot.read().await.clone()
     }
 
+    /// Initialize estimates from stored snapshots (for testing)
+    #[doc(hidden)]
+    pub async fn initialize_from_store(&self) -> Result<(), CollectorError> {
+        // Get recent snapshots
+        let snapshots = self.snapshot_store.get_recent_snapshots(24)?;
+
+        if !snapshots.is_empty() {
+            // Calculate fee estimates
+            match self.fee_estimator.calculate_estimates(&snapshots, None) {
+                Ok(estimate) => {
+                    info!(
+                        "Initialized with fee estimates for {} block targets",
+                        estimate.estimates.len()
+                    );
+
+                    // Update latest estimate
+                    let mut latest = self.latest_estimate.write().await;
+                    *latest = Some(estimate);
+
+                    // Also set a snapshot if we have one
+                    if let Some(snapshot) = snapshots.last() {
+                        let mut latest_snap = self.latest_snapshot.write().await;
+                        *latest_snap = Some(snapshot.clone());
+                    }
+                }
+                Err(e) => {
+                    warn!("Failed to calculate initial fee estimates: {}", e);
+                    return Err(CollectorError::EstimationError(e));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Calculates fee estimates for a specific block target
     pub async fn get_estimate_for_blocks(
         &self,

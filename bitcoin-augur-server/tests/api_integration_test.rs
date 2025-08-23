@@ -35,7 +35,8 @@ async fn create_test_app() -> anyhow::Result<axum::Router> {
         fee_estimator,
     ));
 
-    // The collector will load snapshots from persistence when needed
+    // Initialize the collector with estimates from the saved snapshots
+    collector.initialize_from_store().await?;
 
     Ok(create_app(collector))
 }
@@ -171,7 +172,7 @@ async fn test_invalid_target() -> anyhow::Result<()> {
     let response = app
         .oneshot(
             axum::http::Request::builder()
-                .uri("/fees/target/999")
+                .uri("/fees/target/1001") // Over 1000 limit
                 .body(axum::body::Body::empty())?,
         )
         .await?;
