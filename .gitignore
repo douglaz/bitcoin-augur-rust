@@ -35,3 +35,6 @@ STATUS.md
 TEST_REPORT.md
 *.md
 !README.md
+
+# Log files
+*.log

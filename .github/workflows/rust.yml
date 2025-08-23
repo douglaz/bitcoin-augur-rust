@@ -1,0 +1,57 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+    
+    - name: Install Nix
+      uses: cachix/install-nix-action@v31
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+    
+    # Cache cargo registry for faster builds
+    - name: Cache Cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: cargo-registry-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          cargo-registry-${{ runner.os }}-
+    
+    - name: Check formatting
+      run: nix develop -c cargo fmt --check
+    
+    - name: Run linting
+      run: nix develop -c cargo clippy --all-targets -- -D warnings
+    
+    - name: Build core library
+      run: nix develop -c cargo build --package bitcoin-augur
+    
+    - name: Build server
+      run: nix develop -c cargo build --package bitcoin-augur-server
+    
+    - name: Run core tests
+      run: nix develop -c cargo test --package bitcoin-augur
+    
+    - name: Run server tests
+      run: nix develop -c cargo test --package bitcoin-augur-server
+    
+    - name: Build with nix (static musl binary)
+      run: nix build .#bitcoin-augur-server

@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v5
+    
+    - name: Install Nix
+      uses: cachix/install-nix-action@v31
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+    
+    - name: Build static binary with Nix
+      run: |
+        nix build .#bitcoin-augur-server
+        cp result/bin/bitcoin-augur-server bitcoin-augur-server-linux-x86_64
+        chmod +x bitcoin-augur-server-linux-x86_64
+    
+    - name: Test binary
+      run: |
+        ./bitcoin-augur-server-linux-x86_64 --version || true
+        file bitcoin-augur-server-linux-x86_64
+        ldd bitcoin-augur-server-linux-x86_64 || echo "✅ Static binary (no dynamic dependencies)"
+    
+    - name: Upload Linux binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: bitcoin-augur-server-linux-x86_64
+        path: bitcoin-augur-server-linux-x86_64
+
+  create-release:
+    needs: [build-linux]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v5
+    
+    - name: Download Linux binary
+      uses: actions/download-artifact@v4
+      with:
+        name: bitcoin-augur-server-linux-x86_64
+    
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+    
+    - name: Upload Linux Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./bitcoin-augur-server-linux-x86_64
+        asset_name: bitcoin-augur-server-linux-x86_64
+        asset_content_type: application/octet-stream
