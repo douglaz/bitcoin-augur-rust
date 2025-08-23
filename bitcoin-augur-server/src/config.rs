@@ -106,18 +106,23 @@ impl AppConfig {
         }
 
         // Override with environment variables (AUGUR_ prefix)
+        // Note: For nested fields like bitcoin_rpc.username, use AUGUR_BITCOIN__RPC_USERNAME (double underscore)
         builder = builder.add_source(
             Environment::with_prefix("AUGUR")
-                .separator("_")
+                .separator("__") // Use double underscore for nested structs
                 .try_parsing(true),
         );
 
-        // Also support BITCOIN_RPC_ prefix for Bitcoin credentials
-        builder = builder.add_source(
-            Environment::with_prefix("BITCOIN_RPC")
-                .separator("_")
-                .try_parsing(true),
-        );
+        // Also support BITCOIN_RPC_ prefix for Bitcoin credentials (maps to bitcoin_rpc.*)
+        if let Ok(username) = std::env::var("BITCOIN_RPC_USERNAME") {
+            builder = builder.set_override("bitcoin_rpc.username", username)?;
+        }
+        if let Ok(password) = std::env::var("BITCOIN_RPC_PASSWORD") {
+            builder = builder.set_override("bitcoin_rpc.password", password)?;
+        }
+        if let Ok(url) = std::env::var("BITCOIN_RPC_URL") {
+            builder = builder.set_override("bitcoin_rpc.url", url)?;
+        }
 
         builder.build()?.try_deserialize()
     }
@@ -176,21 +181,29 @@ mod tests {
 
     #[test]
     fn test_env_override() {
-        // Set environment variables
-        env::set_var("AUGUR_SERVER_PORT", "9090");
-        env::set_var("AUGUR_BITCOIN_RPC_USERNAME", "testuser");
+        // Clean up any existing env vars first
+        env::remove_var("BITCOIN_RPC_USERNAME");
+        env::remove_var("BITCOIN_RPC_PASSWORD");
+
+        // Set environment variables (use double underscore for nested fields)
+        env::set_var("AUGUR_SERVER__PORT", "9090");
+        env::set_var("AUGUR_BITCOIN_RPC__USERNAME", "testuser");
 
         let config = AppConfig::load().unwrap();
         assert_eq!(config.server.port, 9090);
         assert_eq!(config.bitcoin_rpc.username, "testuser");
 
         // Clean up
-        env::remove_var("AUGUR_SERVER_PORT");
-        env::remove_var("AUGUR_BITCOIN_RPC_USERNAME");
+        env::remove_var("AUGUR_SERVER__PORT");
+        env::remove_var("AUGUR_BITCOIN_RPC__USERNAME");
     }
 
     #[test]
     fn test_bitcoin_rpc_env() {
+        // Clean up any existing env vars first
+        env::remove_var("AUGUR_BITCOIN_RPC_USERNAME");
+        env::remove_var("AUGUR_BITCOIN_RPC_PASSWORD");
+
         // Test BITCOIN_RPC_ prefix support
         env::set_var("BITCOIN_RPC_USERNAME", "btcuser");
         env::set_var("BITCOIN_RPC_PASSWORD", "btcpass");
