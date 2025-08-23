@@ -136,6 +136,7 @@
           };
           
           default = bitcoin-augur;
+          bitcoin-augur-server = bitcoin-augur; # Alias for CI compatibility
           
           # Docker image with static binary
           docker = pkgs.dockerTools.buildImage {
