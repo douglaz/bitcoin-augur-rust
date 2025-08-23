@@ -23,13 +23,18 @@ use crate::{
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Initialize tracing
+    // Initialize tracing to stderr
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| "bitcoin_augur_server=info,bitcoin_augur=info".into()),
         )
-        .with(tracing_subscriber::fmt::layer())
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_writer(std::io::stderr)
+                .with_target(false)
+                .compact()
+        )
         .init();
     
     info!("Bitcoin Augur Server starting...");
