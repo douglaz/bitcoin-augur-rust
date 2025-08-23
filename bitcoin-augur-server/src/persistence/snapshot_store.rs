@@ -1,5 +1,5 @@
 use bitcoin_augur::MempoolSnapshot;
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Local};
 use serde_json;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -212,12 +212,13 @@ impl SnapshotStore {
 mod tests {
     use super::*;
     use bitcoin_augur::MempoolTransaction;
+    use chrono::Utc;
     use tempfile::TempDir;
 
     #[test]
     fn test_snapshot_store_creation() -> Result<(), PersistenceError> {
         let temp_dir = TempDir::new().unwrap();
-        let store = SnapshotStore::new(temp_dir.path())?;
+        let _store = SnapshotStore::new(temp_dir.path())?;
 
         // Check that directory was created
         assert!(temp_dir.path().exists());

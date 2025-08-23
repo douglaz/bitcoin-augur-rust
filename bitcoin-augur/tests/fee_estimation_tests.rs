@@ -27,10 +27,7 @@ fn test_basic_fee_estimation() -> Result<()> {
     for i in 1..10 {
         let mut new_transactions = transactions.clone();
         // Add some new transactions with varying fees
-        new_transactions.push(MempoolTransaction::new(
-            500 + i * 100,
-            (1000 + i * 500) as u64,
-        ));
+        new_transactions.push(MempoolTransaction::new(500 + i * 100, 1000 + i * 500));
 
         snapshots.push(MempoolSnapshot::from_transactions(
             new_transactions,
@@ -92,7 +89,7 @@ fn test_high_fee_pressure() -> Result<()> {
         for j in 0..100 {
             let weight = 400 + (j % 200);
             let fee_rate = 100 + (j % 400); // 100-500 sat/vB
-            let fee = (weight * fee_rate / 4) as u64;
+            let fee = weight * fee_rate / 4;
             transactions.push(MempoolTransaction::new(weight, fee));
         }
 
@@ -206,10 +203,7 @@ fn test_inflow_simulation() -> Result<()> {
 
             // Base transactions
             for i in 0..10 {
-                transactions.push(MempoolTransaction::new(
-                    400 + i * 50,
-                    (1000 + i * 100) as u64,
-                ));
+                transactions.push(MempoolTransaction::new(400 + i * 50, 1000 + i * 100));
             }
 
             // Add new transactions each minute (simulating inflow)
@@ -275,7 +269,7 @@ fn test_monotonicity_enforcement() -> Result<()> {
     for i in 0..50 {
         let weight = 400 + (i % 100) * 10;
         let fee_rate = 1 + (i * i) % 200; // Non-linear fee distribution
-        let fee = (weight * fee_rate / 4) as u64;
+        let fee = weight * fee_rate / 4;
         transactions.push(MempoolTransaction::new(weight, fee));
     }
 
@@ -343,19 +337,17 @@ fn test_custom_estimator_config() -> Result<()> {
 fn test_extreme_fee_rates() -> Result<()> {
     let estimator = FeeEstimator::new();
 
-    let mut transactions = Vec::new();
-
-    // Add some extremely high fee transactions
-    transactions.push(MempoolTransaction::new(250, 250000)); // 4000 sat/vB
-    transactions.push(MempoolTransaction::new(300, 150000)); // 2000 sat/vB
-
-    // Add normal transactions
-    transactions.push(MempoolTransaction::new(400, 4000)); // 40 sat/vB
-    transactions.push(MempoolTransaction::new(500, 2500)); // 20 sat/vB
-
-    // Add very low fee transactions
-    transactions.push(MempoolTransaction::new(1000, 100)); // 0.4 sat/vB
-    transactions.push(MempoolTransaction::new(2000, 50)); // 0.1 sat/vB
+    let transactions = vec![
+        // Add some extremely high fee transactions
+        MempoolTransaction::new(250, 250000), // 4000 sat/vB
+        MempoolTransaction::new(300, 150000), // 2000 sat/vB
+        // Add normal transactions
+        MempoolTransaction::new(400, 4000), // 40 sat/vB
+        MempoolTransaction::new(500, 2500), // 20 sat/vB
+        // Add very low fee transactions
+        MempoolTransaction::new(1000, 100), // 0.4 sat/vB
+        MempoolTransaction::new(2000, 50),  // 0.1 sat/vB
+    ];
 
     let snapshot = MempoolSnapshot::from_transactions(transactions, 850000, Utc::now());
 

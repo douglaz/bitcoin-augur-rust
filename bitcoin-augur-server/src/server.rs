@@ -57,7 +57,7 @@ pub async fn run_server(app: Router, host: String, port: u16) -> Result<(), std:
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+        .map_err(std::io::Error::other)
 }
 
 /// Graceful shutdown signal handler

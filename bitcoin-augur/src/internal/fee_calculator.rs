@@ -116,7 +116,7 @@ impl FeeCalculator {
         // Mine the expected number of blocks
         let mut current_weights = initial_weights.clone();
         for _ in 0..expected_blocks {
-            current_weights = current_weights + &added_weights_in_one_block;
+            current_weights += &added_weights_in_one_block;
             current_weights = self.mine_block(&current_weights);
         }
 

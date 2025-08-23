@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 /// Application configuration
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct AppConfig {
     pub server: ServerConfig,
     pub bitcoin_rpc: BitcoinRpcConfig,
@@ -20,6 +20,15 @@ pub struct ServerConfig {
     pub port: u16,
 }
 
+impl Default for ServerConfig {
+    fn default() -> Self {
+        Self {
+            host: "0.0.0.0".to_string(),
+            port: 8080,
+        }
+    }
+}
+
 /// Bitcoin RPC configuration
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct BitcoinRpcConfig {
@@ -31,6 +40,16 @@ pub struct BitcoinRpcConfig {
     pub password: String,
 }
 
+impl Default for BitcoinRpcConfig {
+    fn default() -> Self {
+        Self {
+            url: "http://localhost:8332".to_string(),
+            username: String::new(),
+            password: String::new(),
+        }
+    }
+}
+
 /// Persistence configuration
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct PersistenceConfig {
@@ -40,11 +59,26 @@ pub struct PersistenceConfig {
     pub cleanup_days: i64,
 }
 
+impl Default for PersistenceConfig {
+    fn default() -> Self {
+        Self {
+            data_directory: "mempool_data".to_string(),
+            cleanup_days: 30,
+        }
+    }
+}
+
 /// Mempool collector configuration
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct CollectorConfig {
     /// Collection interval in milliseconds (default: 30000)
     pub interval_ms: u64,
+}
+
+impl Default for CollectorConfig {
+    fn default() -> Self {
+        Self { interval_ms: 30000 }
+    }
 }
 
 impl AppConfig {
@@ -112,26 +146,6 @@ impl AppConfig {
         );
 
         builder.build()?.try_deserialize()
-    }
-
-    /// Create default configuration
-    pub fn default() -> Self {
-        Self {
-            server: ServerConfig {
-                host: "0.0.0.0".to_string(),
-                port: 8080,
-            },
-            bitcoin_rpc: BitcoinRpcConfig {
-                url: "http://localhost:8332".to_string(),
-                username: String::new(),
-                password: String::new(),
-            },
-            persistence: PersistenceConfig {
-                data_directory: "mempool_data".to_string(),
-                cleanup_days: 30,
-            },
-            collector: CollectorConfig { interval_ms: 30000 },
-        }
     }
 
     /// Convert to Bitcoin RPC config for the RPC client

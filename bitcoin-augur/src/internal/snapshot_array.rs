@@ -17,6 +17,7 @@ pub(crate) struct SnapshotArray {
 
 impl SnapshotArray {
     /// Creates a new snapshot array.
+    #[allow(dead_code)]
     pub fn new(timestamp: DateTime<Utc>, block_height: u32, buckets: Array1<f64>) -> Self {
         Self {
             timestamp,
@@ -49,6 +50,7 @@ impl SnapshotArray {
     }
 
     /// Returns the total weight across all buckets.
+    #[allow(dead_code)]
     pub fn total_weight(&self) -> f64 {
         self.buckets.sum()
     }

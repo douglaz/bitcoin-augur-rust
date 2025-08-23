@@ -7,7 +7,7 @@ use axum::{
 use std::sync::Arc;
 use tracing::{debug, info, warn};
 
-use super::models::{empty_response, transform_fee_estimate, FeeEstimateResponse};
+use super::models::transform_fee_estimate;
 use crate::service::MempoolCollector;
 
 /// GET /fees - Returns current fee estimates for all block targets
@@ -90,8 +90,7 @@ mod tests {
     use super::*;
     use crate::bitcoin::{BitcoinRpcClient, BitcoinRpcConfig};
     use crate::persistence::SnapshotStore;
-    use bitcoin_augur::{FeeEstimator, MempoolSnapshot, MempoolTransaction};
-    use chrono::Utc;
+    use bitcoin_augur::FeeEstimator;
     use tempfile::TempDir;
 
     async fn create_test_collector() -> Arc<MempoolCollector> {

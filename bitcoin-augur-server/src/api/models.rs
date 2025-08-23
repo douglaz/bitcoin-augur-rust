@@ -78,6 +78,7 @@ fn format_timestamp(timestamp: DateTime<Utc>) -> String {
 }
 
 /// Create an empty response when no estimates are available
+#[allow(dead_code)]
 pub fn empty_response(timestamp: DateTime<Utc>) -> FeeEstimateResponse {
     FeeEstimateResponse {
         mempool_update_time: format_timestamp(timestamp),
@@ -88,7 +89,7 @@ pub fn empty_response(timestamp: DateTime<Utc>) -> FeeEstimateResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ordered_float::OrderedFloat;
+    use bitcoin_augur::OrderedFloat;
     use std::collections::BTreeMap;
 
     #[test]

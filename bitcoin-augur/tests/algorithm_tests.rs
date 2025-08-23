@@ -128,7 +128,7 @@ fn test_weighted_estimates_combination() -> Result<()> {
     // Create 24 hours of data with varying patterns
     for hour in 0..24 {
         // Vary transaction volume by hour (simulating daily patterns)
-        let num_transactions = if hour >= 8 && hour <= 20 {
+        let num_transactions = if (8..=20).contains(&hour) {
             50 // Busy hours
         } else {
             10 // Quiet hours

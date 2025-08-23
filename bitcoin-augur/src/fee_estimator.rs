@@ -44,6 +44,7 @@ pub struct FeeEstimator {
     block_targets: Vec<f64>,
     short_term_window: Duration,
     long_term_window: Duration,
+    #[allow(dead_code)]
     calculator: FeeCalculator,
 }
 
@@ -120,9 +121,9 @@ impl FeeEstimator {
     ///
     /// # Arguments
     /// * `snapshots` - A slice of historical mempool snapshots, ideally covering
-    ///                 at least the past 24 hours.
+    ///   at least the past 24 hours.
     /// * `num_blocks` - Optional specific block target to estimate for.
-    ///                  If provided, must be at least 3.0 (we can't simulate partial blocks).
+    ///   If provided, must be at least 3.0 (we can't simulate partial blocks).
     ///
     /// # Returns
     /// A `FeeEstimate` object containing the calculated estimates, or an error if
@@ -309,7 +310,7 @@ mod tests {
         let snapshot = MempoolSnapshot::from_transactions(transactions, 850000, Utc::now());
 
         // num_blocks too small
-        let result = estimator.calculate_estimates(&[snapshot.clone()], Some(2.0));
+        let result = estimator.calculate_estimates(std::slice::from_ref(&snapshot), Some(2.0));
         assert!(result.is_err());
 
         // num_blocks valid

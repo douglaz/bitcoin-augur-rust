@@ -67,7 +67,7 @@ impl InflowCalculator {
 
             // Add the duration between first and last snapshot of this block
             let block_duration = last_snapshot.timestamp - first_snapshot.timestamp;
-            total_time_span = total_time_span + block_duration;
+            total_time_span += block_duration;
 
             // Calculate positive differences (inflows) between buckets
             let delta = &last_snapshot.buckets - &first_snapshot.buckets;

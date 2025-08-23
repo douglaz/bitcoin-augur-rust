@@ -3,7 +3,6 @@ use bitcoin_augur::MempoolTransaction;
 use reqwest::{header, Client};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::collections::HashMap;
 use thiserror::Error;
 use tracing::{debug, error, info};
 
@@ -53,6 +52,7 @@ struct RpcRequest {
 struct RpcResponse {
     result: Option<Value>,
     error: Option<RpcErrorResponse>,
+    #[allow(dead_code)]
     id: String,
 }
 
@@ -65,6 +65,7 @@ struct RpcErrorResponse {
 #[derive(Deserialize)]
 struct BlockchainInfo {
     blocks: u32,
+    #[allow(dead_code)]
     #[serde(rename = "bestblockhash")]
     best_block_hash: String,
 }

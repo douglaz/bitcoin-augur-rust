@@ -8,7 +8,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use tracing::{debug, info, warn};
 
-use super::models::{empty_response, transform_fee_estimate};
+use super::models::transform_fee_estimate;
 use crate::service::MempoolCollector;
 
 /// Query parameters for historical fee endpoint

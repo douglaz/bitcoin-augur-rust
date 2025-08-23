@@ -1,4 +1,4 @@
-use bitcoin_augur::{FeeEstimate, FeeEstimator, MempoolSnapshot, MempoolTransaction};
+use bitcoin_augur::{FeeEstimate, FeeEstimator, MempoolSnapshot};
 use chrono::{DateTime, Local, Utc};
 use std::sync::Arc;
 use thiserror::Error;
