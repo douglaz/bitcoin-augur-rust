@@ -54,7 +54,7 @@ fn test_no_minimum_fee_at_high_confidence() -> Result<()> {
             if target <= 6 {
                 if let Some(fee_95) = block_target.get_fee_rate(0.95) {
                     assert!(
-                        fee_95 > 1.01 || fee_95 < 0.99, // Not exactly 1.00
+                        !(0.99..=1.01).contains(&fee_95), // Not exactly 1.00
                         "REGRESSION: Target {} at 95% confidence returned exactly 1.00 sat/vB",
                         target
                     );
