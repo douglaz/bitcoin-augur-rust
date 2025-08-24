@@ -39,6 +39,9 @@
             just
             bacon
             tokio-console
+            # For integration testing with Kotlin/Java reference implementation
+            jdk17
+            gradle
           ];
 
           # Musl target configuration using pkgsStatic

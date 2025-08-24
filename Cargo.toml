@@ -1,5 +1,5 @@
 [workspace]
-members = ["bitcoin-augur", "bitcoin-augur-server"]
+members = ["bitcoin-augur", "bitcoin-augur-server", "bitcoin-augur-integration-tests"]
 resolver = "2"
 
 [workspace.package]

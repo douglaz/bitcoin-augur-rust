@@ -1,0 +1,50 @@
+[package]
+name = "bitcoin-augur-integration-tests"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+
+[[bin]]
+name = "bitcoin-augur-integration-tests"
+path = "src/main.rs"
+
+[dependencies]
+# CLI and async runtime
+clap = { version = "4.5", features = ["derive", "env"] }
+tokio = { workspace = true, features = ["full", "process"] }
+async-trait = "0.1"
+
+# HTTP client and JSON
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling and logging
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Utilities
+tempfile = "3.14"
+which = "7.0"
+colored = "2.2"
+chrono = { workspace = true }
+
+# For floating point comparison
+float-cmp = "0.10"
+ordered-float = "4.5"
+
+# For concurrent tests
+futures = "0.3"
+
+# For random number generation
+rand = "0.8"
+
+# For mock RPC server
+axum = "0.7"
+
+[dev-dependencies]
