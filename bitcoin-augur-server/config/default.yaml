@@ -1,0 +1,27 @@
+# Default configuration for Bitcoin Augur Server
+
+# HTTP server settings
+server:
+  host: "0.0.0.0"
+  port: 8080
+
+# Bitcoin Core RPC settings
+bitcoin_rpc:
+  url: "http://localhost:8332"
+  # Username and password can be set via environment variables:
+  # AUGUR_BITCOIN_RPC_USERNAME or BITCOIN_RPC_USERNAME
+  # AUGUR_BITCOIN_RPC_PASSWORD or BITCOIN_RPC_PASSWORD
+  username: ""
+  password: ""
+
+# Persistence settings
+persistence:
+  # Directory for storing mempool snapshots
+  data_directory: "mempool_data"
+  # Number of days to keep old snapshots
+  cleanup_days: 30
+
+# Mempool collector settings
+collector:
+  # How often to collect mempool data (milliseconds)
+  interval_ms: 30000  # 30 seconds
