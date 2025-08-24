@@ -22,9 +22,8 @@ async fn main() -> Result<()> {
 
     tracing_subscriber::registry()
         .with(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                format!("bitcoin_augur_integration_tests={}", log_level).into()
-            }),
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| format!("bitcoin_augur_integration_tests={log_level}").into()),
         )
         .with(
             tracing_subscriber::fmt::layer()
@@ -83,38 +82,35 @@ async fn validate_environment() -> Result<()> {
             "✅ Rust server found: {}",
             path.display().to_string().green()
         ),
-        Err(_) => println!(
-            "❌ Rust server not found. Run: {}",
-            "cargo build --release -p bitcoin-augur-server".yellow()
-        ),
+        Err(_) => {
+            let cmd = "cargo build --release -p bitcoin-augur-server".yellow();
+            println!("❌ Rust server not found. Run: {cmd}");
+        }
     }
 
     // Check for Java
     match which::which("java") {
-        Ok(path) => println!("✅ Java found: {}", path.display().to_string().green()),
+        Ok(path) => {
+            let java_path = path.display().to_string().green();
+            println!("✅ Java found: {java_path}");
+        }
         Err(_) => println!("❌ Java not found. Please install Java 17 or later"),
     }
 
     // Check for Kotlin JAR
     let kotlin_jar = std::path::Path::new("../bitcoin-augur-reference/app/build/libs/app-all.jar");
     if kotlin_jar.exists() {
-        println!(
-            "✅ Kotlin reference JAR found: {}",
-            kotlin_jar.display().to_string().green()
-        );
+        let jar_path = kotlin_jar.display().to_string().green();
+        println!("✅ Kotlin reference JAR found: {jar_path}");
     } else {
-        println!(
-            "❌ Kotlin JAR not found. Run: {}",
-            "./bitcoin-augur-integration-tests build-kotlin".yellow()
-        );
+        let cmd = "./bitcoin-augur-integration-tests build-kotlin".yellow();
+        println!("❌ Kotlin JAR not found. Run: {cmd}");
 
         // Check for gradle
         match which::which("gradle") {
             Ok(path) => {
-                println!(
-                    "   Gradle available at: {}",
-                    path.display().to_string().green()
-                );
+                let gradle_path = path.display().to_string().green();
+                println!("   Gradle available at: {gradle_path}");
             }
             Err(_) => {
                 println!("   ⚠️ Gradle not found. Use nix develop or install Gradle");
@@ -123,10 +119,8 @@ async fn validate_environment() -> Result<()> {
     }
 
     // Check Bitcoin Core connectivity (optional)
-    println!(
-        "\n{}",
-        "Bitcoin Core connectivity will be tested when running tests".italic()
-    );
+    let msg = "Bitcoin Core connectivity will be tested when running tests".italic();
+    println!("\n{msg}");
 
     Ok(())
 }
@@ -134,7 +128,8 @@ async fn validate_environment() -> Result<()> {
 async fn build_kotlin_jar() -> Result<()> {
     use colored::*;
 
-    println!("{}", "Building Kotlin reference JAR...".bold());
+    let msg = "Building Kotlin reference JAR...".bold();
+    println!("{msg}");
 
     // Check if gradle is available
     let gradle_check = tokio::process::Command::new("gradle")
@@ -157,22 +152,22 @@ async fn build_kotlin_jar() -> Result<()> {
         .await;
 
     if java_check.is_err() {
-        println!(
-            "{}",
-            "❌ Java not found. Please install Java 17 or use nix develop".red()
-        );
+        let msg = "❌ Java not found. Please install Java 17 or use nix develop".red();
+        println!("{msg}");
         return Err(anyhow::anyhow!("Java not available"));
     }
 
     // Navigate to the Kotlin reference directory
     let kotlin_ref_dir = std::path::Path::new("../bitcoin-augur-reference");
     if !kotlin_ref_dir.exists() {
-        println!("{}", "❌ bitcoin-augur-reference directory not found".red());
+        let msg = "❌ bitcoin-augur-reference directory not found".red();
+        println!("{msg}");
         println!("  Expected at: ../bitcoin-augur-reference");
         return Err(anyhow::anyhow!("Kotlin reference not found"));
     }
 
-    println!("📁 Found Kotlin reference at: {}", kotlin_ref_dir.display());
+    let path = kotlin_ref_dir.display();
+    println!("📁 Found Kotlin reference at: {path}");
 
     // Get Java home
     let java_home = std::env::var("JAVA_HOME").ok().or_else(|| {
@@ -190,7 +185,7 @@ async fn build_kotlin_jar() -> Result<()> {
     let mut cmd = tokio::process::Command::new("gradle");
 
     if let Some(java_home) = java_home {
-        cmd.arg(format!("-Dorg.gradle.java.home={}", java_home));
+        cmd.arg(format!("-Dorg.gradle.java.home={java_home}"));
     }
 
     cmd.arg("shadowJar")
@@ -202,8 +197,9 @@ async fn build_kotlin_jar() -> Result<()> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        println!("{}", "❌ Build failed:".red());
-        println!("{}", stderr);
+        let msg = "❌ Build failed:".red();
+        println!("{msg}");
+        println!("{stderr}");
         return Err(anyhow::anyhow!("Gradle build failed"));
     }
 
@@ -212,17 +208,12 @@ async fn build_kotlin_jar() -> Result<()> {
     if jar_path.exists() {
         let metadata = std::fs::metadata(&jar_path)?;
         let size_mb = metadata.len() as f64 / 1_048_576.0;
-        println!(
-            "{}",
-            format!(
-                "✅ JAR built successfully: {} ({:.2} MB)",
-                jar_path.display(),
-                size_mb
-            )
-            .green()
-        );
+        let path = jar_path.display();
+        let msg = format!("✅ JAR built successfully: {path} ({size_mb:.2} MB)").green();
+        println!("{msg}");
     } else {
-        println!("{}", "❌ JAR not found after build".red());
+        let msg = "❌ JAR not found after build".red();
+        println!("{msg}");
         return Err(anyhow::anyhow!("JAR not created"));
     }
 

@@ -19,8 +19,10 @@ pub async fn run_all_parity_tests(
     tolerance: f64,
     report: &mut TestReport,
 ) -> Result<()> {
-    println!("\n{}", "Running All Kotlin Parity Tests".bold());
-    println!("{}", "================================".dimmed());
+    let title = "Running All Kotlin Parity Tests".bold();
+    let separator = "================================".dimmed();
+    println!("\n{title}");
+    println!("{separator}");
 
     // Test 1: Empty snapshots
     test_empty_snapshots(rust_server, kotlin_server, tolerance, report).await?;
@@ -69,10 +71,8 @@ pub async fn run_single_parity_test(
     tolerance: f64,
     report: &mut TestReport,
 ) -> Result<()> {
-    println!(
-        "\n{}",
-        format!("Running Parity Test #{}", test_number).bold()
-    );
+    let title = format!("Running Parity Test #{test_number}").bold();
+    println!("\n{title}");
 
     match test_number {
         1 => test_empty_snapshots(rust_server, kotlin_server, tolerance, report).await,
@@ -87,7 +87,7 @@ pub async fn run_single_parity_test(
         10 => test_block_target_fee_rate(rust_server, kotlin_server, tolerance, report).await,
         11 => test_available_targets(rust_server, kotlin_server, tolerance, report).await,
         12 => test_num_blocks_parameter(rust_server, kotlin_server, tolerance, report).await,
-        _ => anyhow::bail!("Invalid test number: {}. Must be 1-12", test_number),
+        _ => anyhow::bail!("Invalid test number: {test_number}. Must be 1-12"),
     }
 }
 
@@ -200,7 +200,8 @@ async fn test_consistent_fee_increase(
         Some(chrono::Duration::hours(1)),
     );
 
-    println!("  Generated {} test snapshots", _snapshots.len());
+    let count = _snapshots.len();
+    println!("  Generated {count} test snapshots");
 
     // Note: In real implementation, inject snapshots into servers
     // For now, we'll test with whatever data they have
@@ -225,11 +226,11 @@ async fn test_consistent_fee_increase(
         }
         (Err(e), _) => {
             report.add_skipped("parity_consistent_increase");
-            println!("  ⚠️ Rust server error: {}", e);
+            println!("  ⚠️ Rust server error: {e}");
         }
         (_, Err(e)) => {
             report.add_skipped("parity_consistent_increase");
-            println!("  ⚠️ Kotlin server error: {}", e);
+            println!("  ⚠️ Kotlin server error: {e}");
         }
     }
 
@@ -265,11 +266,8 @@ async fn test_probability_ordering(
                     if let Some(fee) = get_fee_rate(&rust, *target, *prob) {
                         if fee < last_rust_fee {
                             rust_ordered = false;
-                            println!(
-                                "    ⚠️ Rust: Fee decreases at {}@{:.0}%",
-                                target,
-                                prob * 100.0
-                            );
+                            let prob_pct = prob * 100.0;
+                            println!("    ⚠️ Rust: Fee decreases at {target}@{prob_pct:.0}%");
                         }
                         last_rust_fee = fee;
                     }
@@ -277,11 +275,8 @@ async fn test_probability_ordering(
                     if let Some(fee) = get_fee_rate(&kotlin, *target, *prob) {
                         if fee < last_kotlin_fee {
                             kotlin_ordered = false;
-                            println!(
-                                "    ⚠️ Kotlin: Fee decreases at {}@{:.0}%",
-                                target,
-                                prob * 100.0
-                            );
+                            let prob_pct = prob * 100.0;
+                            println!("    ⚠️ Kotlin: Fee decreases at {target}@{prob_pct:.0}%");
                         }
                         last_kotlin_fee = fee;
                     }
@@ -294,8 +289,7 @@ async fn test_probability_ordering(
             } else {
                 report.add_failed("parity_probability_ordering");
                 println!(
-                    "  ❌ Probability ordering violated (Rust={}, Kotlin={})",
-                    rust_ordered, kotlin_ordered
+                    "  ❌ Probability ordering violated (Rust={rust_ordered}, Kotlin={kotlin_ordered})"
                 );
             }
         }
@@ -337,11 +331,8 @@ async fn test_target_block_ordering(
                     if let Some(fee) = get_fee_rate(&rust, *target, *prob) {
                         if fee > last_rust_fee {
                             rust_ordered = false;
-                            println!(
-                                "    ⚠️ Rust: Fee increases at {}@{:.0}%",
-                                target,
-                                prob * 100.0
-                            );
+                            let prob_pct = prob * 100.0;
+                            println!("    ⚠️ Rust: Fee increases at {target}@{prob_pct:.0}%");
                         }
                         last_rust_fee = fee;
                     }
@@ -349,11 +340,8 @@ async fn test_target_block_ordering(
                     if let Some(fee) = get_fee_rate(&kotlin, *target, *prob) {
                         if fee > last_kotlin_fee {
                             kotlin_ordered = false;
-                            println!(
-                                "    ⚠️ Kotlin: Fee increases at {}@{:.0}%",
-                                target,
-                                prob * 100.0
-                            );
+                            let prob_pct = prob * 100.0;
+                            println!("    ⚠️ Kotlin: Fee increases at {target}@{prob_pct:.0}%");
                         }
                         last_kotlin_fee = fee;
                     }
@@ -366,8 +354,7 @@ async fn test_target_block_ordering(
             } else {
                 report.add_failed("parity_target_ordering");
                 println!(
-                    "  ❌ Target block ordering violated (Rust={}, Kotlin={})",
-                    rust_ordered, kotlin_ordered
+                    "  ❌ Target block ordering violated (Rust={rust_ordered}, Kotlin={kotlin_ordered})"
                 );
             }
         }
@@ -465,21 +452,15 @@ async fn test_custom_probabilities(
             match (rust_fee, kotlin_fee) {
                 (Some(r), Some(k)) if !fees_match(r, k, tolerance) => {
                     all_match = false;
+                    let prob_pct = prob * 100.0;
                     println!(
-                        "  ❌ Mismatch at {}@{:.0}%: Rust={:.2}, Kotlin={:.2}",
-                        target,
-                        prob * 100.0,
-                        r,
-                        k
+                        "  ❌ Mismatch at {target}@{prob_pct:.0}%: Rust={r:.2}, Kotlin={k:.2}"
                     );
                 }
                 (Some(_), None) | (None, Some(_)) => {
                     all_match = false;
-                    println!(
-                        "  ❌ Availability mismatch at {}@{:.0}%",
-                        target,
-                        prob * 100.0
-                    );
+                    let prob_pct = prob * 100.0;
+                    println!("  ❌ Availability mismatch at {target}@{prob_pct:.0}%");
                 }
                 _ => {}
             }
@@ -568,8 +549,7 @@ async fn test_nearest_block_target(
                 if rust_has_exact != kotlin_has_exact {
                     all_match = false;
                     println!(
-                        "  ❌ Different target handling for {}: Rust={}, Kotlin={}",
-                        target, rust_has_exact, kotlin_has_exact
+                        "  ❌ Different target handling for {target}: Rust={rust_has_exact}, Kotlin={kotlin_has_exact}"
                     );
                 }
             }
@@ -578,7 +558,7 @@ async fn test_nearest_block_target(
             }
             _ => {
                 all_match = false;
-                println!("  ❌ Different response for target {}", target);
+                println!("  ❌ Different response for target {target}");
             }
         }
     }
@@ -623,21 +603,16 @@ async fn test_block_target_fee_rate(
                         (Some(r), Some(k)) if !fees_match(r, k, tolerance) => {
                             all_match = false;
                             let diff_pct = ((r - k) / k * 100.0).abs();
+                            let prob_pct = prob * 100.0;
                             println!(
-                                "  ❌ Target {} @ {:.0}%: Rust={:.2}, Kotlin={:.2} (diff={:.2}%)",
-                                target,
-                                prob * 100.0,
-                                r,
-                                k,
-                                diff_pct
+                                "  ❌ Target {target} @ {prob_pct:.0}%: Rust={r:.2}, Kotlin={k:.2} (diff={diff_pct:.2}%)"
                             );
                         }
                         (Some(_), None) | (None, Some(_)) => {
                             all_match = false;
+                            let prob_pct = prob * 100.0;
                             println!(
-                                "  ❌ Availability mismatch for target {} @ {:.0}%",
-                                target,
-                                prob * 100.0
+                                "  ❌ Availability mismatch for target {target} @ {prob_pct:.0}%"
                             );
                         }
                         _ => {}
@@ -646,7 +621,7 @@ async fn test_block_target_fee_rate(
             }
             _ => {
                 all_match = false;
-                println!("  ❌ Failed to get response for target {}", target);
+                println!("  ❌ Failed to get response for target {target}");
             }
         }
     }
@@ -699,7 +674,7 @@ async fn test_available_targets(
 
                     if rust_probs != kotlin_probs {
                         confidence_match = false;
-                        println!("  ❌ Different confidence levels for target {}", target_str);
+                        println!("  ❌ Different confidence levels for target {target_str}");
                     }
                 }
             }
@@ -707,13 +682,12 @@ async fn test_available_targets(
             if targets_match && confidence_match {
                 report.add_passed("parity_available_targets");
                 println!("  ✅ Available targets and confidence levels match");
-                println!("     Targets: {:?}", rust_targets);
+                println!("     Targets: {rust_targets:?}");
             } else {
                 report.add_failed("parity_available_targets");
                 if !targets_match {
                     println!(
-                        "  ❌ Different targets: Rust={:?}, Kotlin={:?}",
-                        rust_targets, kotlin_targets
+                        "  ❌ Different targets: Rust={rust_targets:?}, Kotlin={kotlin_targets:?}"
                     );
                 }
             }
@@ -745,7 +719,7 @@ async fn test_num_blocks_parameter(
     for num_blocks in test_num_blocks {
         // Note: This assumes the API supports a numOfBlocks parameter
         // You may need to adjust based on actual API implementation
-        println!("  Testing with numOfBlocks={}", num_blocks);
+        println!("  Testing with numOfBlocks={num_blocks}");
 
         let rust_resp = rust_client.get_fees().await;
         let kotlin_resp = kotlin_client.get_fees().await;
@@ -761,13 +735,9 @@ async fn test_num_blocks_parameter(
                         match (rust_fee, kotlin_fee) {
                             (Some(r), Some(k)) if !fees_match(r, k, tolerance) => {
                                 all_match = false;
+                                let prob_pct = prob * 100.0;
                                 println!(
-                                    "    ❌ numBlocks={}, {}@{:.0}%: Rust={:.2}, Kotlin={:.2}",
-                                    num_blocks,
-                                    target,
-                                    prob * 100.0,
-                                    r,
-                                    k
+                                    "    ❌ numBlocks={num_blocks}, {target}@{prob_pct:.0}%: Rust={r:.2}, Kotlin={k:.2}"
                                 );
                             }
                             _ => {}
@@ -776,7 +746,7 @@ async fn test_num_blocks_parameter(
                 }
             }
             _ => {
-                println!("    ⚠️ Could not get response for numBlocks={}", num_blocks);
+                println!("    ⚠️ Could not get response for numBlocks={num_blocks}");
             }
         }
     }

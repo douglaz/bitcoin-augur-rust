@@ -28,8 +28,9 @@ impl MockBitcoinRpc {
             .route("/", post(handle_rpc))
             .with_state(mempool);
 
-        let addr = format!("127.0.0.1:{}", self.port);
-        info!("Mock Bitcoin RPC server listening on {}", addr);
+        let port = self.port;
+        let addr = format!("127.0.0.1:{port}");
+        info!("Mock Bitcoin RPC server listening on {addr}");
 
         let listener = tokio::net::TcpListener::bind(&addr).await?;
         axum::serve(listener, app).await?;
@@ -89,7 +90,8 @@ async fn handle_rpc(
     State(mempool): State<Arc<RwLock<Vec<TestTransaction>>>>,
     Json(req): Json<RpcRequest>,
 ) -> (StatusCode, Json<RpcResponse>) {
-    debug!("Mock RPC received method: {}", req.method);
+    let method = &req.method;
+    debug!("Mock RPC received method: {method}");
 
     let response = match req.method.as_str() {
         "getrawmempool" => {
@@ -257,14 +259,17 @@ async fn handle_rpc(
             id: req.id,
         },
 
-        _ => RpcResponse {
-            result: None,
-            error: Some(RpcError {
-                code: -32601,
-                message: format!("Method not found: {}", req.method),
-            }),
-            id: req.id,
-        },
+        _ => {
+            let method = &req.method;
+            RpcResponse {
+                result: None,
+                error: Some(RpcError {
+                    code: -32601,
+                    message: format!("Method not found: {method}"),
+                }),
+                id: req.id,
+            }
+        }
     };
 
     (StatusCode::OK, Json(response))

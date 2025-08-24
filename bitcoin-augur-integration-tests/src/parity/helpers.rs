@@ -34,10 +34,10 @@ pub fn compare_responses(
     let kotlin_targets: Vec<_> = kotlin_resp.estimates.keys().map(|k| k.as_str()).collect();
 
     if rust_targets.len() != kotlin_targets.len() {
+        let rust_count = rust_targets.len();
+        let kotlin_count = kotlin_targets.len();
         result.add_error(format!(
-            "Different number of block targets: Rust={}, Kotlin={}",
-            rust_targets.len(),
-            kotlin_targets.len()
+            "Different number of block targets: Rust={rust_count}, Kotlin={kotlin_count}"
         ));
     }
 
@@ -61,19 +61,15 @@ pub fn compare_responses(
                     result.matches += 1;
                 }
                 (Some(r), None) => {
+                    let prob_pct = prob * 100.0;
                     result.add_error(format!(
-                        "Rust has fee for {}@{:.0}% ({:.2}) but Kotlin doesn't",
-                        target,
-                        prob * 100.0,
-                        r
+                        "Rust has fee for {target}@{prob_pct:.0}% ({r:.2}) but Kotlin doesn't"
                     ));
                 }
                 (None, Some(k)) => {
+                    let prob_pct = prob * 100.0;
                     result.add_error(format!(
-                        "Kotlin has fee for {}@{:.0}% ({:.2}) but Rust doesn't",
-                        target,
-                        prob * 100.0,
-                        k
+                        "Kotlin has fee for {target}@{prob_pct:.0}% ({k:.2}) but Rust doesn't"
                     ));
                 }
             }
@@ -120,35 +116,33 @@ impl ComparisonResult {
         use colored::*;
 
         if self.is_success() {
-            println!(
-                "  ✅ {}: All {} fee rates match",
-                test_name.green(),
-                self.matches
-            );
+            let test_name_colored = test_name.green();
+            let matches = self.matches;
+            println!("  ✅ {test_name_colored}: All {matches} fee rates match");
         } else {
+            let test_name_colored = test_name.red();
+            let matches = self.matches;
+            let mismatches_count = self.mismatches.len();
+            let errors_count = self.errors.len();
             println!(
-                "  ❌ {}: {} matches, {} mismatches, {} errors",
-                test_name.red(),
-                self.matches,
-                self.mismatches.len(),
-                self.errors.len()
+                "  ❌ {test_name_colored}: {matches} matches, {mismatches_count} mismatches, {errors_count} errors"
             );
 
             // Print mismatches
             for mismatch in &self.mismatches {
+                let target = mismatch.target;
+                let prob_pct = mismatch.probability * 100.0;
+                let rust_fee = mismatch.rust_fee;
+                let kotlin_fee = mismatch.kotlin_fee;
+                let diff = mismatch.difference_pct;
                 println!(
-                    "    ⚠️ {}@{:.0}%: Rust={:.2}, Kotlin={:.2} (diff={:.2}%)",
-                    mismatch.target,
-                    mismatch.probability * 100.0,
-                    mismatch.rust_fee,
-                    mismatch.kotlin_fee,
-                    mismatch.difference_pct
+                    "    ⚠️ {target}@{prob_pct:.0}%: Rust={rust_fee:.2}, Kotlin={kotlin_fee:.2} (diff={diff:.2}%)"
                 );
             }
 
             // Print errors
             for error in &self.errors {
-                println!("    ❌ {}", error);
+                println!("    ❌ {error}");
             }
         }
     }

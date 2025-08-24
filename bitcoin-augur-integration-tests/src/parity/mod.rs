@@ -15,8 +15,10 @@ use tracing::info;
 pub async fn run_parity_tests(args: ParityArgs) -> Result<()> {
     use colored::*;
 
-    println!("{}", "Bitcoin Augur Kotlin Parity Tests".bold().cyan());
-    println!("{}", "==================================".cyan());
+    let title = "Bitcoin Augur Kotlin Parity Tests".bold().cyan();
+    let separator = "==================================".cyan();
+    println!("{title}");
+    println!("{separator}");
 
     let mut report = TestReport::new();
 
@@ -39,10 +41,8 @@ pub async fn run_parity_tests(args: ParityArgs) -> Result<()> {
 
     // Start mock RPC if requested
     let _mock_rpc = if args.use_mock_rpc {
-        info!(
-            "Starting mock Bitcoin RPC server on port {}",
-            args.mock_rpc_port
-        );
+        let mock_port = args.mock_rpc_port;
+        info!("Starting mock Bitcoin RPC server on port {mock_port}");
         let mock = std::sync::Arc::new(MockBitcoinRpc::new(args.mock_rpc_port));
 
         // Start server in background
@@ -50,7 +50,7 @@ pub async fn run_parity_tests(args: ParityArgs) -> Result<()> {
         tokio::spawn(async move {
             let mock_server = MockBitcoinRpc::new(mock_port);
             if let Err(e) = mock_server.start().await {
-                tracing::error!("Mock RPC server error: {}", e);
+                tracing::error!("Mock RPC server error: {e}");
             }
         });
 
@@ -58,18 +58,20 @@ pub async fn run_parity_tests(args: ParityArgs) -> Result<()> {
         tokio::time::sleep(Duration::from_secs(1)).await;
 
         // Update server configs to use mock RPC
+        let mock_port = args.mock_rpc_port;
         rust_server = RustServer::new(
             args.rust_port,
             args.rust_binary.clone(),
-            format!("http://127.0.0.1:{}", args.mock_rpc_port),
+            format!("http://127.0.0.1:{mock_port}"),
             Some("mockuser".to_string()),
             Some("mockpass".to_string()),
         )?;
 
+        let mock_port = args.mock_rpc_port;
         kotlin_server = KotlinServer::new(
             args.kotlin_port,
             args.kotlin_jar.clone(),
-            format!("http://127.0.0.1:{}", args.mock_rpc_port),
+            format!("http://127.0.0.1:{mock_port}"),
             Some("mockuser".to_string()),
             Some("mockpass".to_string()),
         )?;
@@ -124,6 +126,7 @@ pub async fn run_parity_tests(args: ParityArgs) -> Result<()> {
         anyhow::bail!("Some parity tests failed");
     }
 
-    println!("\n{}", "✅ Full Kotlin parity achieved!".bold().green());
+    let success_msg = "✅ Full Kotlin parity achieved!".bold().green();
+    println!("\n{success_msg}");
     Ok(())
 }

@@ -35,7 +35,8 @@ pub trait Server: Send + Sync {
 
         loop {
             if start.elapsed() > timeout {
-                anyhow::bail!("{} failed to start within {:?}", self.name(), timeout);
+                let name = self.name();
+                anyhow::bail!("{name} failed to start within {timeout:?}");
             }
 
             match self.health_check().await {
