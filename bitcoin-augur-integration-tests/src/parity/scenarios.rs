@@ -10,6 +10,7 @@ use crate::server::Server;
 use super::helpers::{
     compare_responses, fees_match, get_fee_rate, DEFAULT_BLOCK_TARGETS, DEFAULT_PROBABILITIES,
 };
+use super::mock_rpc::MockBitcoinRpc;
 use super::test_data::TestDataGenerator;
 
 /// Run all 12 parity tests
@@ -18,6 +19,7 @@ pub async fn run_all_parity_tests(
     kotlin_server: &dyn Server,
     tolerance: f64,
     report: &mut TestReport,
+    mock_rpc: Option<&MockBitcoinRpc>,
 ) -> Result<()> {
     let title = "Running All Kotlin Parity Tests".bold();
     let separator = "================================".dimmed();
@@ -25,40 +27,40 @@ pub async fn run_all_parity_tests(
     println!("{separator}");
 
     // Test 1: Empty snapshots
-    test_empty_snapshots(rust_server, kotlin_server, tolerance, report).await?;
+    test_empty_snapshots(rust_server, kotlin_server, tolerance, report, mock_rpc).await?;
 
     // Test 2: Single snapshot
-    test_single_snapshot(rust_server, kotlin_server, tolerance, report).await?;
+    test_single_snapshot(rust_server, kotlin_server, tolerance, report, mock_rpc).await?;
 
     // Test 3: Consistent fee increase
-    test_consistent_fee_increase(rust_server, kotlin_server, tolerance, report).await?;
+    test_consistent_fee_increase(rust_server, kotlin_server, tolerance, report, mock_rpc).await?;
 
     // Test 4: Probability ordering
-    test_probability_ordering(rust_server, kotlin_server, tolerance, report).await?;
+    test_probability_ordering(rust_server, kotlin_server, tolerance, report, mock_rpc).await?;
 
     // Test 5: Target block ordering
-    test_target_block_ordering(rust_server, kotlin_server, tolerance, report).await?;
+    test_target_block_ordering(rust_server, kotlin_server, tolerance, report, mock_rpc).await?;
 
     // Test 6: High long-term inflow
-    test_high_longterm_inflow(rust_server, kotlin_server, tolerance, report).await?;
+    test_high_longterm_inflow(rust_server, kotlin_server, tolerance, report, mock_rpc).await?;
 
     // Test 7: Custom probabilities and targets
-    test_custom_probabilities(rust_server, kotlin_server, tolerance, report).await?;
+    test_custom_probabilities(rust_server, kotlin_server, tolerance, report, mock_rpc).await?;
 
     // Test 8: Unordered snapshots
-    test_unordered_snapshots(rust_server, kotlin_server, tolerance, report).await?;
+    test_unordered_snapshots(rust_server, kotlin_server, tolerance, report, mock_rpc).await?;
 
     // Test 9: Nearest block target
-    test_nearest_block_target(rust_server, kotlin_server, tolerance, report).await?;
+    test_nearest_block_target(rust_server, kotlin_server, tolerance, report, mock_rpc).await?;
 
     // Test 10: Block target fee rate
-    test_block_target_fee_rate(rust_server, kotlin_server, tolerance, report).await?;
+    test_block_target_fee_rate(rust_server, kotlin_server, tolerance, report, mock_rpc).await?;
 
     // Test 11: Available targets and confidence levels
-    test_available_targets(rust_server, kotlin_server, tolerance, report).await?;
+    test_available_targets(rust_server, kotlin_server, tolerance, report, mock_rpc).await?;
 
     // Test 12: numOfBlocks parameter
-    test_num_blocks_parameter(rust_server, kotlin_server, tolerance, report).await?;
+    test_num_blocks_parameter(rust_server, kotlin_server, tolerance, report, mock_rpc).await?;
 
     Ok(())
 }
@@ -70,23 +72,45 @@ pub async fn run_single_parity_test(
     test_number: usize,
     tolerance: f64,
     report: &mut TestReport,
+    mock_rpc: Option<&MockBitcoinRpc>,
 ) -> Result<()> {
     let title = format!("Running Parity Test #{test_number}").bold();
     println!("\n{title}");
 
     match test_number {
-        1 => test_empty_snapshots(rust_server, kotlin_server, tolerance, report).await,
-        2 => test_single_snapshot(rust_server, kotlin_server, tolerance, report).await,
-        3 => test_consistent_fee_increase(rust_server, kotlin_server, tolerance, report).await,
-        4 => test_probability_ordering(rust_server, kotlin_server, tolerance, report).await,
-        5 => test_target_block_ordering(rust_server, kotlin_server, tolerance, report).await,
-        6 => test_high_longterm_inflow(rust_server, kotlin_server, tolerance, report).await,
-        7 => test_custom_probabilities(rust_server, kotlin_server, tolerance, report).await,
-        8 => test_unordered_snapshots(rust_server, kotlin_server, tolerance, report).await,
-        9 => test_nearest_block_target(rust_server, kotlin_server, tolerance, report).await,
-        10 => test_block_target_fee_rate(rust_server, kotlin_server, tolerance, report).await,
-        11 => test_available_targets(rust_server, kotlin_server, tolerance, report).await,
-        12 => test_num_blocks_parameter(rust_server, kotlin_server, tolerance, report).await,
+        1 => test_empty_snapshots(rust_server, kotlin_server, tolerance, report, mock_rpc).await,
+        2 => test_single_snapshot(rust_server, kotlin_server, tolerance, report, mock_rpc).await,
+        3 => {
+            test_consistent_fee_increase(rust_server, kotlin_server, tolerance, report, mock_rpc)
+                .await
+        }
+        4 => {
+            test_probability_ordering(rust_server, kotlin_server, tolerance, report, mock_rpc).await
+        }
+        5 => {
+            test_target_block_ordering(rust_server, kotlin_server, tolerance, report, mock_rpc)
+                .await
+        }
+        6 => {
+            test_high_longterm_inflow(rust_server, kotlin_server, tolerance, report, mock_rpc).await
+        }
+        7 => {
+            test_custom_probabilities(rust_server, kotlin_server, tolerance, report, mock_rpc).await
+        }
+        8 => {
+            test_unordered_snapshots(rust_server, kotlin_server, tolerance, report, mock_rpc).await
+        }
+        9 => {
+            test_nearest_block_target(rust_server, kotlin_server, tolerance, report, mock_rpc).await
+        }
+        10 => {
+            test_block_target_fee_rate(rust_server, kotlin_server, tolerance, report, mock_rpc)
+                .await
+        }
+        11 => test_available_targets(rust_server, kotlin_server, tolerance, report, mock_rpc).await,
+        12 => {
+            test_num_blocks_parameter(rust_server, kotlin_server, tolerance, report, mock_rpc).await
+        }
         _ => anyhow::bail!("Invalid test number: {test_number}. Must be 1-12"),
     }
 }
@@ -97,6 +121,7 @@ async fn test_empty_snapshots(
     kotlin_server: &dyn Server,
     _tolerance: f64,
     report: &mut TestReport,
+    _mock_rpc: Option<&MockBitcoinRpc>,
 ) -> Result<()> {
     println!("\n📊 Test 1: Empty snapshot list returns null estimates");
 
@@ -132,6 +157,7 @@ async fn test_single_snapshot(
     kotlin_server: &dyn Server,
     _tolerance: f64,
     report: &mut TestReport,
+    _mock_rpc: Option<&MockBitcoinRpc>,
 ) -> Result<()> {
     println!("\n📊 Test 2: Single snapshot returns null estimates");
 
@@ -189,22 +215,14 @@ async fn test_consistent_fee_increase(
     kotlin_server: &dyn Server,
     tolerance: f64,
     report: &mut TestReport,
+    mock_rpc: Option<&MockBitcoinRpc>,
 ) -> Result<()> {
     println!("\n📊 Test 3: Consistent fee rate increase (144 blocks)");
 
-    // Generate test data matching Kotlin test
-    let _snapshots = TestDataGenerator::create_snapshot_sequence(
-        144, // 24 hours of blocks
-        3,   // 3 snapshots per block
-        Utc::now(),
-        Some(chrono::Duration::hours(1)),
-    );
-
-    let count = _snapshots.len();
-    println!("  Generated {count} test snapshots");
-
-    // Note: In real implementation, inject snapshots into servers
-    // For now, we'll test with whatever data they have
+    // With pre-populated data and --init-from-store flag, servers should have estimates immediately
+    if mock_rpc.is_some() {
+        println!("  Servers initialized with pre-populated snapshot data");
+    }
 
     let rust_client = ApiClient::new(rust_server.base_url());
     let kotlin_client = ApiClient::new(kotlin_server.base_url());
@@ -243,6 +261,7 @@ async fn test_probability_ordering(
     kotlin_server: &dyn Server,
     _tolerance: f64,
     report: &mut TestReport,
+    _mock_rpc: Option<&MockBitcoinRpc>,
 ) -> Result<()> {
     println!("\n📊 Test 4: Probability ordering (fees increase with confidence)");
 
@@ -308,6 +327,7 @@ async fn test_target_block_ordering(
     kotlin_server: &dyn Server,
     _tolerance: f64,
     report: &mut TestReport,
+    _mock_rpc: Option<&MockBitcoinRpc>,
 ) -> Result<()> {
     println!("\n📊 Test 5: Target block ordering (fees decrease with distance)");
 
@@ -375,6 +395,7 @@ async fn test_high_longterm_inflow(
     kotlin_server: &dyn Server,
     tolerance: f64,
     report: &mut TestReport,
+    _mock_rpc: Option<&MockBitcoinRpc>,
 ) -> Result<()> {
     println!("\n📊 Test 6: High long-term inflow rates");
 
@@ -422,6 +443,7 @@ async fn test_custom_probabilities(
     kotlin_server: &dyn Server,
     tolerance: f64,
     report: &mut TestReport,
+    _mock_rpc: Option<&MockBitcoinRpc>,
 ) -> Result<()> {
     println!("\n📊 Test 7: Custom probabilities and targets");
 
@@ -482,6 +504,7 @@ async fn test_unordered_snapshots(
     kotlin_server: &dyn Server,
     tolerance: f64,
     report: &mut TestReport,
+    _mock_rpc: Option<&MockBitcoinRpc>,
 ) -> Result<()> {
     println!("\n📊 Test 8: Unordered snapshots");
 
@@ -526,6 +549,7 @@ async fn test_nearest_block_target(
     kotlin_server: &dyn Server,
     _tolerance: f64,
     report: &mut TestReport,
+    _mock_rpc: Option<&MockBitcoinRpc>,
 ) -> Result<()> {
     println!("\n📊 Test 9: Nearest block target");
 
@@ -578,6 +602,7 @@ async fn test_block_target_fee_rate(
     kotlin_server: &dyn Server,
     tolerance: f64,
     report: &mut TestReport,
+    _mock_rpc: Option<&MockBitcoinRpc>,
 ) -> Result<()> {
     println!("\n📊 Test 10: Block target fee rate");
 
@@ -641,6 +666,7 @@ async fn test_available_targets(
     kotlin_server: &dyn Server,
     _tolerance: f64,
     report: &mut TestReport,
+    _mock_rpc: Option<&MockBitcoinRpc>,
 ) -> Result<()> {
     println!("\n📊 Test 11: Available targets and confidence levels");
 
@@ -706,6 +732,7 @@ async fn test_num_blocks_parameter(
     kotlin_server: &dyn Server,
     tolerance: f64,
     report: &mut TestReport,
+    _mock_rpc: Option<&MockBitcoinRpc>,
 ) -> Result<()> {
     println!("\n📊 Test 12: numOfBlocks parameter");
 

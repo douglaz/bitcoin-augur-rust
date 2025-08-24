@@ -15,13 +15,32 @@ pub struct MockBitcoinRpc {
 
 impl MockBitcoinRpc {
     pub fn new(port: u16) -> Self {
+        // Start with some initial transactions for testing
+        let initial_txs = vec![
+            TestTransaction {
+                weight: 1000,
+                fee: 10000,
+                fee_rate: 10.0, // 10 sat/vB
+            },
+            TestTransaction {
+                weight: 2000,
+                fee: 40000,
+                fee_rate: 20.0, // 20 sat/vB
+            },
+            TestTransaction {
+                weight: 1500,
+                fee: 22500,
+                fee_rate: 15.0, // 15 sat/vB
+            },
+        ];
+
         Self {
-            mempool: Arc::new(RwLock::new(Vec::new())),
+            mempool: Arc::new(RwLock::new(initial_txs)),
             port,
         }
     }
 
-    pub async fn start(self) -> Result<()> {
+    pub async fn start(&self) -> Result<()> {
         let mempool = self.mempool.clone();
 
         let app = Router::new()

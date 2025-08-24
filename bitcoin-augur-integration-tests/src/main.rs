@@ -10,7 +10,8 @@ use anyhow::Result;
 use clap::Parser;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::cli::{Cli, Commands};
+use crate::cli::{Cli, Commands, StartServerArgs};
+use crate::server::{KotlinServer, RustServer, Server};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -45,6 +46,12 @@ async fn main() -> Result<()> {
         }
         Commands::Validate => {
             validate_environment().await?;
+        }
+        Commands::StartRust(args) => {
+            start_rust_server(args).await?;
+        }
+        Commands::StartKotlin(args) => {
+            start_kotlin_server(args).await?;
         }
     }
 
@@ -216,6 +223,192 @@ async fn build_kotlin_jar() -> Result<()> {
         println!("{msg}");
         return Err(anyhow::anyhow!("JAR not created"));
     }
+
+    Ok(())
+}
+
+async fn start_rust_server(args: StartServerArgs) -> Result<()> {
+    use colored::*;
+    use std::time::Duration;
+
+    let title = "Starting Rust Bitcoin Augur Server".bold().cyan();
+    println!("{title}");
+    println!("{}", "=================================".cyan());
+
+    // Start mock RPC if requested
+    let _mock_rpc = if args.use_mock_rpc {
+        let mock_port = args.mock_rpc_port;
+        let msg = format!("Starting mock Bitcoin RPC on port {mock_port}").yellow();
+        println!("{msg}");
+
+        let mock = std::sync::Arc::new(parity::MockBitcoinRpc::new(mock_port));
+        let mock_clone = mock.clone();
+
+        tokio::spawn(async move {
+            if let Err(e) = mock_clone.start().await {
+                tracing::error!("Mock RPC server error: {e}");
+            }
+        });
+
+        // Give mock RPC time to start
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        Some(mock)
+    } else {
+        None
+    };
+
+    // Configure Bitcoin RPC URL
+    let bitcoin_rpc = if args.use_mock_rpc {
+        let mock_port = args.mock_rpc_port;
+        format!("http://127.0.0.1:{mock_port}")
+    } else {
+        args.bitcoin_rpc.clone()
+    };
+
+    // Pre-populate data if we're using mock RPC and want to init from store
+    let _temp_dir_handle; // Keep temp_dir alive
+    let data_dir = if args.use_mock_rpc && args.init_from_store {
+        let temp_dir = tempfile::TempDir::new()?;
+        let data_path = temp_dir.path().join("mempool_data");
+
+        let msg = "Pre-populating snapshot data...".yellow();
+        println!("{msg}");
+        parity::snapshot_generator::generate_and_save_snapshots(&data_path, 24)?;
+
+        let count_msg = format!("Generated 144 snapshots in {}", data_path.display()).green();
+        println!("{count_msg}");
+
+        _temp_dir_handle = temp_dir; // Move ownership to keep it alive
+        Some(data_path)
+    } else {
+        _temp_dir_handle = tempfile::TempDir::new()?; // Create dummy to satisfy type
+        None
+    };
+
+    // Create and start the Rust server
+    let mut server = RustServer::new(
+        args.port,
+        args.binary,
+        bitcoin_rpc.clone(),
+        args.rpc_user.clone(),
+        args.rpc_password.clone(),
+    )?;
+
+    // Set pre-populated data directory if available
+    if let Some(data_dir) = data_dir {
+        server.set_data_directory(data_dir);
+    }
+
+    let port = args.port;
+    let msg = format!("Starting server on port {port}...").green();
+    println!("{msg}");
+    server.start().await?;
+
+    // Wait for server to be ready
+    println!("Waiting for server to be ready...");
+    server.wait_for_ready(Duration::from_secs(30)).await?;
+
+    let ready_msg = format!("✅ Server is running at http://127.0.0.1:{port}")
+        .green()
+        .bold();
+    println!("{ready_msg}");
+    println!();
+    let endpoints = "Available endpoints:".bold();
+    println!("{endpoints}");
+    let health_url = format!("  - http://127.0.0.1:{port}/health");
+    let fees_url = format!("  - http://127.0.0.1:{port}/fees");
+    println!("{health_url}");
+    println!("{fees_url}");
+    println!();
+    let stop_msg = "Press Ctrl+C to stop the server".italic();
+    println!("{stop_msg}");
+
+    // Keep the server running
+    tokio::signal::ctrl_c().await?;
+
+    println!("\n{}", "Stopping server...".yellow());
+    server.stop().await?;
+
+    Ok(())
+}
+
+async fn start_kotlin_server(args: StartServerArgs) -> Result<()> {
+    use colored::*;
+    use std::time::Duration;
+
+    let title = "Starting Kotlin Bitcoin Augur Server".bold().cyan();
+    println!("{title}");
+    println!("{}", "====================================".cyan());
+
+    // Start mock RPC if requested
+    let _mock_rpc = if args.use_mock_rpc {
+        let mock_port = args.mock_rpc_port;
+        let msg = format!("Starting mock Bitcoin RPC on port {mock_port}").yellow();
+        println!("{msg}");
+
+        let mock = std::sync::Arc::new(parity::MockBitcoinRpc::new(mock_port));
+        let mock_clone = mock.clone();
+
+        tokio::spawn(async move {
+            if let Err(e) = mock_clone.start().await {
+                tracing::error!("Mock RPC server error: {e}");
+            }
+        });
+
+        // Give mock RPC time to start
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        Some(mock)
+    } else {
+        None
+    };
+
+    // Configure Bitcoin RPC URL
+    let bitcoin_rpc = if args.use_mock_rpc {
+        let mock_port = args.mock_rpc_port;
+        format!("http://127.0.0.1:{mock_port}")
+    } else {
+        args.bitcoin_rpc.clone()
+    };
+
+    // Create and start the Kotlin server
+    let mut server = KotlinServer::new(
+        args.port,
+        args.binary,
+        bitcoin_rpc.clone(),
+        args.rpc_user.clone(),
+        args.rpc_password.clone(),
+    )?;
+
+    let port = args.port;
+    let msg = format!("Starting server on port {port}...").green();
+    println!("{msg}");
+    server.start().await?;
+
+    // Wait for server to be ready
+    println!("Waiting for server to be ready...");
+    server.wait_for_ready(Duration::from_secs(30)).await?;
+
+    let ready_msg = format!("✅ Server is running at http://127.0.0.1:{port}")
+        .green()
+        .bold();
+    println!("{ready_msg}");
+    println!();
+    let endpoints = "Available endpoints:".bold();
+    println!("{endpoints}");
+    let fees_url = format!("  - http://127.0.0.1:{port}/fees");
+    let historical_url =
+        format!("  - http://127.0.0.1:{port}/historical_fee?timestamp=<unix_timestamp>");
+    println!("{fees_url}");
+    println!("{historical_url}");
+    println!();
+    let stop_msg = "Press Ctrl+C to stop the server".italic();
+    println!("{stop_msg}");
+
+    // Keep the server running
+    tokio::signal::ctrl_c().await?;
+
+    println!("\n{}", "Stopping server...".yellow());
+    server.stop().await?;
 
     Ok(())
 }

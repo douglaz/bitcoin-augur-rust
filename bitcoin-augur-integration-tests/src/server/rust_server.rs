@@ -16,6 +16,7 @@ pub struct RustServer {
     bitcoin_rpc: String,
     rpc_user: Option<String>,
     rpc_password: Option<String>,
+    data_dir: Option<PathBuf>,
 }
 
 impl RustServer {
@@ -40,7 +41,13 @@ impl RustServer {
             bitcoin_rpc,
             rpc_user,
             rpc_password,
+            data_dir: None,
         })
+    }
+
+    /// Set a pre-populated data directory to use instead of creating a temporary one
+    pub fn set_data_directory(&mut self, data_dir: PathBuf) {
+        self.data_dir = Some(data_dir);
     }
 }
 
@@ -53,13 +60,27 @@ impl Server for RustServer {
 
         info!("Starting Rust server on port {}", self.port);
 
-        // Create temporary directory for data
-        let temp_dir = TempDir::new()?;
-        let data_dir = temp_dir.path().join("mempool_data");
-        std::fs::create_dir_all(&data_dir)?;
+        // Use provided data directory or create temporary one
+        let (temp_dir, data_dir) = if let Some(ref data_dir) = self.data_dir {
+            // Use pre-populated data directory
+            info!("Using pre-populated data directory: {}", data_dir.display());
+            (None, data_dir.clone())
+        } else {
+            // Create temporary directory for data
+            let temp_dir = TempDir::new()?;
+            let data_dir = temp_dir.path().join("mempool_data");
+            std::fs::create_dir_all(&data_dir)?;
+            (Some(temp_dir), data_dir)
+        };
 
         // Create config file
-        let config_path = temp_dir.path().join("config.yaml");
+        let config_dir = if let Some(ref td) = temp_dir {
+            td.path().to_path_buf()
+        } else {
+            // Use data directory's parent for config when using pre-populated data
+            data_dir.parent().unwrap_or(&data_dir).to_path_buf()
+        };
+        let config_path = config_dir.join("config.yaml");
         let config_content = format!(
             r#"
 server:
@@ -76,7 +97,7 @@ persistence:
   cleanup_days: 7
 
 collector:
-  interval_ms: 30000
+  interval_ms: 1000  # Fast polling for tests
 "#,
             self.port,
             self.bitcoin_rpc,
@@ -89,6 +110,12 @@ collector:
 
         // Start the process
         let mut cmd = Command::new(&self.binary_path);
+
+        // Add --init-from-store flag if we have pre-populated data
+        if self.data_dir.is_some() {
+            cmd.arg("--init-from-store");
+        }
+
         cmd.env("AUGUR_CONFIG_FILE", config_path.to_str().unwrap())
             .env("RUST_LOG", "info")
             .stdout(Stdio::piped())
@@ -103,7 +130,9 @@ collector:
         })?;
 
         self.process = Some(child);
-        self.temp_dir = Some(temp_dir);
+        if temp_dir.is_some() {
+            self.temp_dir = temp_dir;
+        }
 
         debug!("Rust server process started");
         Ok(())

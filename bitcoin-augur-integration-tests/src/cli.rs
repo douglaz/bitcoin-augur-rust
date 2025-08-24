@@ -30,6 +30,14 @@ pub enum Commands {
 
     /// Validate environment (check for required binaries)
     Validate,
+
+    /// Start the Rust server for manual testing
+    #[command(name = "start-rust")]
+    StartRust(StartServerArgs),
+
+    /// Start the Kotlin server for manual testing
+    #[command(name = "start-kotlin")]
+    StartKotlin(StartServerArgs),
 }
 
 #[derive(Parser)]
@@ -132,4 +140,47 @@ pub struct ParityArgs {
     /// Timeout for server startup in seconds
     #[arg(long, default_value = "30")]
     pub startup_timeout: u64,
+}
+
+#[derive(Parser)]
+pub struct StartServerArgs {
+    /// Port for the server
+    #[arg(long, default_value = "8190")]
+    pub port: u16,
+
+    /// Bitcoin RPC URL
+    #[arg(long, default_value = "http://localhost:8332")]
+    pub bitcoin_rpc: String,
+
+    /// Bitcoin RPC username
+    #[arg(long, env = "BITCOIN_RPC_USER")]
+    pub rpc_user: Option<String>,
+
+    /// Bitcoin RPC password
+    #[arg(long, env = "BITCOIN_RPC_PASSWORD")]
+    pub rpc_password: Option<String>,
+
+    /// Server binary/JAR path (optional)
+    #[arg(long)]
+    pub binary: Option<String>,
+
+    /// Use mock Bitcoin RPC instead of real
+    #[arg(long)]
+    pub use_mock_rpc: bool,
+
+    /// Port for mock RPC server
+    #[arg(long, default_value = "18332")]
+    pub mock_rpc_port: u16,
+
+    /// Data directory for persistence
+    #[arg(long, default_value = "/tmp/server_data")]
+    pub data_dir: String,
+
+    /// Collection interval in milliseconds
+    #[arg(long, default_value = "1000")]
+    pub interval_ms: u64,
+
+    /// Initialize fee estimates from stored snapshots on startup (Rust server only)
+    #[arg(long)]
+    pub init_from_store: bool,
 }
