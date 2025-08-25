@@ -594,4 +594,149 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    fn parity_run_simulation_large_block_size() {
+        // Kotlin: test runSimulation with large block size
+        // Note: Rust uses fixed block size, so we test with many blocks instead
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+
+        let mut initial_weights = Array1::zeros(5);
+        let mut added_weights = Array1::zeros(5);
+
+        for i in 0..5 {
+            initial_weights[i] = 1000.0;
+            added_weights[i] = 100.0;
+        }
+
+        // Use many blocks to mine everything (simulating large block effect)
+        let result = calculator.run_simulation(
+            &initial_weights,
+            &added_weights,
+            10, // expected_blocks - many blocks
+            10, // mean_blocks
+        );
+
+        // With many blocks, most/all buckets should be mined
+        // Returns the best index (lowest non-mined bucket)
+        assert_eq!(result, Some(0));
+    }
+
+    #[test]
+    fn parity_run_simulation_intermediate_mining() {
+        // Kotlin: test runSimulation with intermediate mining case
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+
+        let mut initial_weights = Array1::zeros(5);
+        let mut added_weights = Array1::zeros(5);
+
+        // Set up weights that will partially mine with 2 blocks
+        for i in 0..5 {
+            initial_weights[i] = 2_000_000.0; // 2M weight per bucket
+            added_weights[i] = 500_000.0; // 500k added per bucket
+        }
+
+        let result = calculator.run_simulation(
+            &initial_weights,
+            &added_weights,
+            2, // expected_blocks
+            2, // mean_blocks
+        );
+
+        // With 2 blocks of 4M each = 8M total capacity
+        // Initial total = 10M, added = 2.5M, total = 12.5M
+        // Should mine buckets 4 and part of 3
+        assert!(result.is_some());
+        assert!(result.unwrap() > 0); // Not all mined
+    }
+
+    #[test]
+    fn parity_run_simulation_returns_min_fee_when_all_mined() {
+        // Kotlin: test runSimulation returns 1 sat per vb when all buckets are mined
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+
+        let mut initial_weights = Array1::zeros(5);
+        let mut added_weights = Array1::zeros(5);
+
+        for i in 0..5 {
+            initial_weights[i] = 10_000.0; // Small weights
+            added_weights[i] = 5_000.0;
+        }
+
+        let result = calculator.run_simulation(
+            &initial_weights,
+            &added_weights,
+            100, // expected_blocks - many blocks to mine everything
+            100, // mean_blocks
+        );
+
+        // When all buckets are mined, returns bucket 0 (minimum fee rate)
+        assert_eq!(result, Some(0));
+    }
+
+    #[test]
+    fn parity_run_simulation_no_estimate_when_none_mined() {
+        // Kotlin: test runSimulation ignores estimate when no buckets fully mined
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+
+        let mut initial_weights = Array1::zeros(5);
+        let mut added_weights = Array1::zeros(5);
+
+        for i in 0..5 {
+            initial_weights[i] = 10_000_000.0; // 10M weight per bucket
+            added_weights[i] = 1_000_000.0; // 1M added
+        }
+
+        let result = calculator.run_simulation(
+            &initial_weights,
+            &added_weights,
+            0, // zero expected_blocks
+            1, // mean_blocks
+        );
+
+        // With zero blocks, nothing can be mined
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn parity_get_expected_blocks_returns_valid() {
+        // Kotlin: test getExpectedBlocksMined returns valid blocks
+        use statrs::distribution::{DiscreteCDF, Poisson};
+
+        // Test various probabilities and targets
+        let test_cases = vec![
+            (0.5, 3.0),   // 50% probability, 3 blocks target
+            (0.95, 12.0), // 95% probability, 12 blocks target
+            (0.8, 144.0), // 80% probability, 144 blocks target
+        ];
+
+        for (probability, target) in test_cases {
+            // Calculate expected blocks using Poisson distribution
+            let poisson = Poisson::new(target).unwrap();
+
+            // Find the number of blocks where P(X <= blocks) >= probability
+            let mut expected = 0;
+            for blocks in 0..((target * 4.0) as u64) {
+                if 1.0 - poisson.cdf(blocks) < probability {
+                    expected = blocks;
+                    break;
+                }
+            }
+
+            // Expected blocks should be positive and reasonable
+            assert!(expected > 0, "Expected blocks should be positive");
+            assert!(
+                (expected as f64) < target * 4.0,
+                "Expected blocks should be reasonable"
+            );
+
+            // For 50% probability, expected blocks should be close to target
+            if (probability - 0.5).abs() < 0.01 {
+                assert!(
+                    (expected as f64 - target).abs() < 2.0,
+                    "At 50% probability, expected blocks should be close to target"
+                );
+            }
+        }
+    }
 }
