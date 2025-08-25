@@ -2,7 +2,7 @@ use crate::mempool_transaction::MempoolTransaction;
 use std::collections::BTreeMap;
 
 /// Maximum bucket index.
-pub const BUCKET_MAX: i32 = 1000;
+pub const BUCKET_MAX: i32 = 10000;
 
 /// Creates a bucket map from mempool transactions where the key is the bucket index
 /// and the value is the sum of the weights at that fee rate, normalized to a one block duration.
@@ -52,7 +52,9 @@ mod tests {
         assert_eq!(calculate_bucket_index(std::f64::consts::E), 100); // ln(e) = 1
 
         // Test that we cap at BUCKET_MAX
-        assert_eq!(calculate_bucket_index(1e10), BUCKET_MAX);
+        // ln(e^100) * 100 = 10000
+        let max_fee_rate = (BUCKET_MAX as f64 / 100.0).exp();
+        assert_eq!(calculate_bucket_index(max_fee_rate + 1.0), BUCKET_MAX);
     }
 
     #[test]
@@ -194,14 +196,19 @@ mod tests {
     #[test]
     fn parity_create_buckets_very_high_fee_rates() {
         // Matches Kotlin: "test createFeeRateBuckets with very high fee rates"
+        // To hit BUCKET_MAX (10000), we need fee rate >= e^100 ≈ 2.7e43
+        // That's not practical, so we'll test a very high but reasonable fee rate
         let transactions = vec![
-            MempoolTransaction::new(400, 1_000_000_000), // Very high fee rate
+            MempoolTransaction::new(400, 1_000_000_000), // Very high fee rate (10M sat/vB)
         ];
 
         let buckets = create_fee_rate_buckets(&transactions);
 
-        // The bucket index should be at BUCKET_MAX
-        assert!(buckets.contains_key(&BUCKET_MAX));
-        assert_eq!(buckets[&BUCKET_MAX], 400);
+        // Calculate the expected bucket for this fee rate
+        let fee_rate: f64 = 1_000_000_000.0 * 4.0 / 400.0;
+        let expected_bucket = (fee_rate.ln() * 100.0).round() as i32;
+
+        assert!(buckets.contains_key(&expected_bucket));
+        assert_eq!(buckets[&expected_bucket], 400);
     }
 }

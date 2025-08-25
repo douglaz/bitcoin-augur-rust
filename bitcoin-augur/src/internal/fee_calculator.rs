@@ -44,6 +44,16 @@ impl FeeCalculator {
         short_inflows: &Array1<f64>,
         long_inflows: &Array1<f64>,
     ) -> Array2<Option<f64>> {
+        // Check if mempool is completely empty and has no inflows
+        let is_empty = mempool_snapshot.sum() == 0.0
+            && short_inflows.sum() == 0.0
+            && long_inflows.sum() == 0.0;
+
+        if is_empty {
+            // Return None for all estimates when mempool is empty
+            return Array2::from_elem((self.block_targets.len(), self.probabilities.len()), None);
+        }
+
         // Add half of short-term inflows as a buffer to current weights
         let current_weights_with_buffer = mempool_snapshot + short_inflows / 2.0;
 

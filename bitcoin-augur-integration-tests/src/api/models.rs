@@ -24,6 +24,7 @@ pub struct Probability {
 }
 
 // Alternative response format for historical endpoint
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoricalFeeResponse {
     pub timestamp: DateTime<Utc>,
