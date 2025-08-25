@@ -49,7 +49,7 @@ fn snapshot_sequence_strategy() -> impl Strategy<Value = Vec<MempoolSnapshot>> {
             ));
 
             // Advance time and occasionally increase block height
-            base_time = base_time + Duration::minutes(5);
+            base_time += Duration::minutes(5);
             if snapshots.len() % 4 == 0 {
                 block_height += 1;
             }
@@ -238,7 +238,7 @@ proptest! {
                 850000 + i,
                 base_time,
             ));
-            base_time = base_time + Duration::minutes(10);
+            base_time += Duration::minutes(10);
         }
 
         let estimator = FeeEstimator::new();
@@ -279,7 +279,7 @@ proptest! {
                 850000 + i as u32,
                 base_time,
             ));
-            base_time = base_time + Duration::minutes(10);
+            base_time += Duration::minutes(10);
         }
 
         let estimator = FeeEstimator::new();

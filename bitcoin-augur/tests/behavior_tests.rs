@@ -287,7 +287,7 @@ fn test_weighting_affects_long_term_estimates() {
         );
 
         // Both should be reasonable (not extreme values)
-        assert!(short_fee >= 1.0 && short_fee <= 1000.0);
-        assert!(long_fee >= 1.0 && long_fee <= 1000.0);
+        assert!((1.0..=1000.0).contains(&short_fee));
+        assert!((1.0..=1000.0).contains(&long_fee));
     }
 }

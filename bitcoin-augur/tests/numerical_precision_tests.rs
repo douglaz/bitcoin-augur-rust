@@ -167,11 +167,11 @@ fn test_bucket_calculation_precision() {
     // The bucket index is calculated as ln(fee_rate) * 100
 
     let test_cases: Vec<(f64, i32)> = vec![
-        (1.0, 0),          // ln(1) * 100 = 0
-        (2.718282, 100),   // ln(e) * 100 ≈ 100
-        (7.389056, 200),   // ln(e^2) * 100 ≈ 200
-        (20.085537, 300),  // ln(e^3) * 100 ≈ 300
-        (148.413159, 500), // ln(e^5) * 100 ≈ 500
+        (1.0, 0),                   // ln(1) * 100 = 0
+        (std::f64::consts::E, 100), // ln(e) * 100 ≈ 100
+        (7.389056, 200),            // ln(e^2) * 100 ≈ 200
+        (20.085537, 300),           // ln(e^3) * 100 ≈ 300
+        (148.413159, 500),          // ln(e^5) * 100 ≈ 500
     ];
 
     for (fee_rate, expected_bucket) in test_cases {
@@ -219,7 +219,7 @@ fn test_weight_accumulation_precision() {
         for target in [3, 6, 12] {
             if let Some(fee_rate) = estimates.get_fee_rate(target, 0.95) {
                 assert!(
-                    fee_rate >= 1.0 && fee_rate <= 10000.0,
+                    (1.0..=10000.0).contains(&fee_rate),
                     "Fee rate should be reasonable despite many small transactions"
                 );
             }

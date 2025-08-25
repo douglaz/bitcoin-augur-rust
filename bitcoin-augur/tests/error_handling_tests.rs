@@ -135,7 +135,7 @@ fn test_insufficient_data_handling() {
         for target in [3, 6, 12, 24, 144] {
             if let Some(fee_rate) = estimates.get_fee_rate(target, 0.95) {
                 assert!(
-                    fee_rate >= 1.0 && fee_rate <= 10000.0,
+                    (1.0..=10000.0).contains(&fee_rate),
                     "Fee rate should be within bounds even with limited data"
                 );
             }
@@ -335,7 +335,7 @@ fn test_overflow_protection() {
             for target in [3, 6, 12] {
                 if let Some(fee_rate) = estimates.get_fee_rate(target, 0.95) {
                     assert!(
-                        fee_rate >= 1.0 && fee_rate <= 10000.0,
+                        (1.0..=10000.0).contains(&fee_rate),
                         "Fee rate should be within bounds even with large weights"
                     );
                 }
