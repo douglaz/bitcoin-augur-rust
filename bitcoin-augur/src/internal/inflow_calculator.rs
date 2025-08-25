@@ -149,4 +149,168 @@ mod tests {
         // Negative changes should be ignored (set to 0)
         assert_eq!(inflows[10], 0.0);
     }
+
+    // ===== KOTLIN PARITY TESTS =====
+    // These tests match InflowCalculatorTest from the Kotlin implementation
+
+    #[test]
+    fn parity_calculate_inflows_empty_snapshot_list() {
+        // Matches Kotlin: "test calculateInflows with empty snapshot list"
+        let inflows = InflowCalculator::calculate_inflows(&[], Duration::minutes(10));
+        
+        assert_eq!(inflows.len(), BUCKET_MAX as usize + 1);
+        assert_eq!(inflows.sum(), 0.0);
+    }
+
+    #[test]
+    fn parity_calculate_inflows_single_block_snapshots() {
+        // Matches Kotlin: "test calculateInflows with single block snapshots"
+        let base_time = Utc::now();
+        
+        // Create buckets with uniform weights
+        let mut buckets1 = Array1::zeros(BUCKET_MAX as usize + 1);
+        let mut buckets2 = Array1::zeros(BUCKET_MAX as usize + 1);
+        buckets1.fill(1000.0);
+        buckets2.fill(2000.0);
+        
+        let snapshots = vec![
+            SnapshotArray::new(base_time, 100, buckets1),
+            SnapshotArray::new(base_time + Duration::seconds(300), 100, buckets2),
+        ];
+        
+        let inflows = InflowCalculator::calculate_inflows(&snapshots, Duration::minutes(10));
+        
+        // Each bucket increased by 1000, over 5 minutes
+        // Normalized to 10 minutes, should be 2000 per bucket
+        assert_eq!(inflows.len(), BUCKET_MAX as usize + 1);
+        assert_eq!(inflows[0], 2000.0);
+    }
+
+    #[test]
+    fn parity_calculate_inflows_consistent_rate() {
+        // Matches Kotlin: "test calculateInflows with consistent inflow rate"
+        let base_time = Utc::now();
+        
+        // Create snapshots with consistent inflow rate across all buckets
+        let mut buckets1 = Array1::zeros(BUCKET_MAX as usize + 1);
+        let mut buckets2 = Array1::zeros(BUCKET_MAX as usize + 1);
+        let mut buckets3 = Array1::zeros(BUCKET_MAX as usize + 1);
+        buckets1.fill(1_000_000.0);
+        buckets2.fill(2_000_000.0);
+        buckets3.fill(3_000_000.0);
+        
+        let snapshots = vec![
+            SnapshotArray::new(base_time, 100, buckets1),
+            SnapshotArray::new(base_time + Duration::seconds(300), 100, buckets2),
+            SnapshotArray::new(base_time + Duration::seconds(600), 100, buckets3),
+        ];
+        
+        let inflows = InflowCalculator::calculate_inflows(&snapshots, Duration::minutes(10));
+        
+        // Each bucket increased by 1M every 5 minutes
+        // Normalized to 10 minutes, should be 2M per bucket
+        assert_eq!(inflows.len(), BUCKET_MAX as usize + 1);
+        assert_eq!(inflows[0], 2_000_000.0);
+        assert_eq!(inflows[BUCKET_MAX as usize], 2_000_000.0);
+    }
+
+    #[test]
+    fn parity_calculate_inflows_different_rates_per_bucket() {
+        // Matches Kotlin: "test calculateInflows with different rates per bucket"
+        let base_time = Utc::now();
+        
+        // Create snapshots with different inflow rates for different buckets
+        let mut buckets1 = Array1::zeros(BUCKET_MAX as usize + 1);
+        buckets1[0] = 1_000_000.0;
+        buckets1[1] = 2_000_000.0;
+        buckets1[2] = 3_000_000.0;
+        
+        let mut buckets2 = Array1::zeros(BUCKET_MAX as usize + 1);
+        buckets2[0] = 2_000_000.0;
+        buckets2[1] = 4_000_000.0;
+        buckets2[2] = 6_000_000.0;
+        
+        let snapshots = vec![
+            SnapshotArray::new(base_time, 100, buckets1),
+            SnapshotArray::new(base_time + Duration::seconds(300), 100, buckets2),
+        ];
+        
+        let inflows = InflowCalculator::calculate_inflows(&snapshots, Duration::minutes(10));
+        
+        // Over 5 minutes:
+        // Bucket 0 increased by 1M -> 2M per 10 minutes
+        // Bucket 1 increased by 2M -> 4M per 10 minutes
+        // Bucket 2 increased by 3M -> 6M per 10 minutes
+        assert_eq!(inflows.len(), BUCKET_MAX as usize + 1);
+        assert_eq!(inflows[0], 2_000_000.0);
+        assert_eq!(inflows[1], 4_000_000.0);
+        assert_eq!(inflows[2], 6_000_000.0);
+        assert_eq!(inflows[3], 0.0);
+    }
+
+    #[test]
+    fn parity_calculate_inflows_first_last_snapshot_per_block() {
+        // Matches Kotlin: "test calculateInflows considers only first and last snapshot per block height"
+        let base_time = Utc::now();
+        
+        // Create snapshots for the same block height with fluctuating values
+        let mut buckets1 = Array1::zeros(BUCKET_MAX as usize + 1);
+        let mut buckets2 = Array1::zeros(BUCKET_MAX as usize + 1);
+        let mut buckets3 = Array1::zeros(BUCKET_MAX as usize + 1);
+        buckets1.fill(1000.0);
+        buckets2.fill(500.0);  // Dip should be ignored
+        buckets3.fill(2000.0);
+        
+        let snapshots = vec![
+            SnapshotArray::new(base_time, 100, buckets1),
+            SnapshotArray::new(base_time + Duration::seconds(100), 100, buckets2),
+            SnapshotArray::new(base_time + Duration::seconds(300), 100, buckets3),
+        ];
+        
+        let inflows = InflowCalculator::calculate_inflows(&snapshots, Duration::minutes(10));
+        
+        // Should only consider the difference between first (1000) and last (2000) snapshots
+        // Over 5 minutes: increased by 1000 -> normalized to 2000 per 10 minutes
+        assert_eq!(inflows.len(), BUCKET_MAX as usize + 1);
+        assert_eq!(inflows[0], 2000.0);
+    }
+
+    #[test]
+    fn parity_calculate_inflows_multiple_block_heights() {
+        // Matches Kotlin: "test calculateInflows handles multiple block heights"
+        let base_time = Utc::now();
+        
+        let mut buckets_100_1 = Array1::zeros(BUCKET_MAX as usize + 1);
+        let mut buckets_100_2 = Array1::zeros(BUCKET_MAX as usize + 1);
+        let mut buckets_100_3 = Array1::zeros(BUCKET_MAX as usize + 1);
+        let mut buckets_101_1 = Array1::zeros(BUCKET_MAX as usize + 1);
+        let mut buckets_101_2 = Array1::zeros(BUCKET_MAX as usize + 1);
+        let mut buckets_101_3 = Array1::zeros(BUCKET_MAX as usize + 1);
+        
+        buckets_100_1.fill(1000.0);
+        buckets_100_2.fill(500.0);   // Should be ignored
+        buckets_100_3.fill(2000.0);
+        buckets_101_1.fill(2000.0);
+        buckets_101_2.fill(1500.0);  // Should be ignored
+        buckets_101_3.fill(3000.0);
+        
+        let snapshots = vec![
+            // Block 100
+            SnapshotArray::new(base_time, 100, buckets_100_1),
+            SnapshotArray::new(base_time + Duration::seconds(100), 100, buckets_100_2),
+            SnapshotArray::new(base_time + Duration::seconds(200), 100, buckets_100_3),
+            // Block 101
+            SnapshotArray::new(base_time + Duration::seconds(300), 101, buckets_101_1),
+            SnapshotArray::new(base_time + Duration::seconds(400), 101, buckets_101_2),
+            SnapshotArray::new(base_time + Duration::seconds(500), 101, buckets_101_3),
+        ];
+        
+        let inflows = InflowCalculator::calculate_inflows(&snapshots, Duration::minutes(10));
+        
+        // Block 100: +1000 over 200s
+        // Block 101: +1000 over 200s
+        // Total: +2000 over 400s = +3000 per 600s (10 minutes)
+        assert_eq!(inflows.len(), BUCKET_MAX as usize + 1);
+        assert_eq!(inflows[0], 3000.0);
+    }
 }
