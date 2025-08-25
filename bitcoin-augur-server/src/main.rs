@@ -9,8 +9,9 @@ mod service;
 
 use anyhow::{Context, Result};
 use bitcoin_augur::FeeEstimator;
+use clap::Parser;
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::{
@@ -21,8 +22,28 @@ use crate::{
     service::MempoolCollector,
 };
 
+/// Bitcoin Augur Server CLI
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    /// Initialize fee estimates from stored snapshots on startup
+    #[arg(long)]
+    init_from_store: bool,
+
+    /// Path to configuration file (can also be set via AUGUR_CONFIG_FILE env var)
+    #[arg(short, long)]
+    config: Option<String>,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Parse CLI arguments
+    let cli = Cli::parse();
+
+    // Set config file if provided via CLI
+    if let Some(config_path) = cli.config {
+        std::env::set_var("AUGUR_CONFIG_FILE", config_path);
+    }
     // Initialize tracing to stderr
     tracing_subscriber::registry()
         .with(
@@ -74,6 +95,15 @@ async fn main() -> Result<()> {
         snapshot_store,
         fee_estimator,
     ));
+
+    // Initialize from stored snapshots if requested
+    if cli.init_from_store {
+        info!("Initializing fee estimates from stored snapshots...");
+        match collector.initialize_from_store().await {
+            Ok(_) => info!("Successfully initialized estimates from stored snapshots"),
+            Err(e) => warn!("Failed to initialize from store: {e}"),
+        }
+    }
 
     // Spawn background collection task
     let collector_handle = collector.clone();

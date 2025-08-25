@@ -187,10 +187,14 @@ impl FeeCalculator {
         bucket_estimates.mapv(|bucket| (bucket / 100.0).exp())
     }
 
-    /// Ensures that fee rates decrease (or stay the same) as block targets increase.
+    /// Ensures proper monotonicity in both dimensions:
+    /// 1. Fee rates decrease (or stay the same) as block targets increase
+    /// 2. Fee rates increase (or stay the same) as probability increases
     fn enforce_monotonicity(&self, fee_rates: &Array2<f64>) -> Array2<f64> {
         let mut result = fee_rates.clone();
 
+        // First pass: Enforce decreasing fees with increasing block targets
+        // (longer confirmation targets should have lower or equal fees)
         for j in 0..self.probabilities.len() {
             let mut prev_rate = f64::INFINITY;
 
@@ -199,6 +203,28 @@ impl FeeCalculator {
                     result[[i, j]] = prev_rate;
                 }
                 prev_rate = result[[i, j]];
+            }
+        }
+
+        // Second pass: Ensure non-decreasing fees with increasing probability
+        // (higher confidence should have higher or equal fees)
+        // This is done after block target monotonicity to preserve that constraint
+        for i in 0..self.block_targets.len() {
+            for j in 1..self.probabilities.len() {
+                if result[[i, j]] < result[[i, j - 1]] {
+                    // Fee decreased with probability, which shouldn't happen
+                    // Use the maximum that doesn't violate block target monotonicity
+                    let candidate = result[[i, j - 1]];
+
+                    // Check if this would violate block target constraint
+                    // (fee for this target shouldn't exceed fee for shorter target)
+                    if i == 0 || candidate <= result[[i - 1, j]] {
+                        result[[i, j]] = candidate;
+                    } else if i > 0 {
+                        // Use the fee from the shorter target as the maximum
+                        result[[i, j]] = result[[i - 1, j]];
+                    }
+                }
             }
         }
 
@@ -225,6 +251,13 @@ impl FeeCalculator {
     }
 
     /// Calculates expected number of blocks to be mined for each probability level.
+    ///
+    /// For each confidence level p, we find the largest k such that P(X >= k) >= p,
+    /// where X follows a Poisson distribution with mean = target.
+    ///
+    /// Higher confidence means being more conservative (pessimistic about chain speed):
+    /// - 95% confidence: "I'm 95% sure we'll mine AT LEAST k blocks" (small k) → higher fees
+    /// - 5% confidence: "I'm only 5% sure we'll mine AT LEAST k blocks" (large k) → lower fees
     fn calculate_expected_blocks(probabilities: &[f64], block_targets: &[f64]) -> Array2<f64> {
         let mut blocks = Array2::zeros((block_targets.len(), probabilities.len()));
 
@@ -232,26 +265,36 @@ impl FeeCalculator {
             // Create Poisson distribution with mean = target
             let poisson = Poisson::new(target).unwrap();
 
-            // For each probability level, find max blocks that can be mined
+            // For each probability level, find the number of blocks to simulate
             for (j, &probability) in probabilities.iter().enumerate() {
-                // Find the number of blocks k such that P(X >= k) >= probability
-                // This is equivalent to P(X < k) < probability
-                // We iterate to find the right k
+                // We want to find the largest k such that P(X >= k) >= probability
+                // This is equivalent to finding the largest k where the upper tail >= probability
+                //
+                // For high confidence (e.g., 95%), we're pessimistic about chain speed,
+                // so we assume FEWER blocks will be mined, requiring HIGHER fees.
                 let max_search = (target * 4.0) as usize;
 
-                for k in 0..max_search {
-                    // Poisson CDF expects u64 for discrete distribution
-                    let prob_at_least_k = 1.0 - poisson.cdf(k as u64);
-                    if prob_at_least_k < probability {
-                        // Found the threshold
-                        if k > 0 {
-                            blocks[[i, j]] = (k - 1) as f64;
-                        }
+                // Search backwards to find the largest k where P(X >= k) >= probability
+                let mut found = false;
+                for k in (0..max_search).rev() {
+                    // P(X >= k) = 1 - P(X < k) = 1 - P(X <= k-1)
+                    let prob_at_least_k = if k == 0 {
+                        1.0 // P(X >= 0) = 1
+                    } else {
+                        1.0 - poisson.cdf((k - 1) as u64)
+                    };
+
+                    if prob_at_least_k >= probability {
+                        // We're 'probability' confident that at least k blocks will be mined
+                        blocks[[i, j]] = k as f64;
+                        found = true;
                         break;
                     }
-                    if k == max_search - 1 {
-                        blocks[[i, j]] = k as f64;
-                    }
+                }
+
+                // If we didn't find a k (shouldn't happen), use 0
+                if !found {
+                    blocks[[i, j]] = 0.0;
                 }
             }
         }
@@ -308,8 +351,36 @@ mod tests {
 
         let monotone = calculator.enforce_monotonicity(&fee_rates);
 
-        // Second row should not exceed first row
+        // Block target monotonicity: Second row should not exceed first row
         assert_eq!(monotone[[1, 0]], 5.0); // Reduced from 10 to 5
-        assert_eq!(monotone[[1, 1]], 8.0); // Unchanged
+        assert_eq!(monotone[[1, 1]], 8.0); // Unchanged (already less than 10)
+
+        // Probability monotonicity: Higher probabilities should have >= fees
+        assert!(monotone[[0, 1]] >= monotone[[0, 0]]); // 95% >= 50% for 3 blocks
+        assert!(monotone[[1, 1]] >= monotone[[1, 0]]); // 95% >= 50% for 6 blocks
+    }
+
+    #[test]
+    fn test_enforce_monotonicity_probability_fix() {
+        let calculator = FeeCalculator::new(vec![0.5, 0.8, 0.95], vec![3.0, 6.0]);
+
+        let mut fee_rates = Array2::zeros((2, 3));
+        fee_rates[[0, 0]] = 10.0; // 3 blocks, 50%
+        fee_rates[[0, 1]] = 15.0; // 3 blocks, 80%
+        fee_rates[[0, 2]] = 12.0; // 3 blocks, 95% - WRONG! Should be >= 15
+        fee_rates[[1, 0]] = 8.0; // 6 blocks, 50%
+        fee_rates[[1, 1]] = 10.0; // 6 blocks, 80%
+        fee_rates[[1, 2]] = 9.0; // 6 blocks, 95% - WRONG! Should be >= 10
+
+        let monotone = calculator.enforce_monotonicity(&fee_rates);
+
+        // Check probability monotonicity is fixed
+        assert_eq!(monotone[[0, 2]], 15.0); // Fixed: 95% = 80% for 3 blocks
+        assert_eq!(monotone[[1, 2]], 10.0); // Fixed: 95% = 80% for 6 blocks
+
+        // Verify block target monotonicity still holds
+        assert!(monotone[[1, 0]] <= monotone[[0, 0]]); // 6 blocks <= 3 blocks at 50%
+        assert!(monotone[[1, 1]] <= monotone[[0, 1]]); // 6 blocks <= 3 blocks at 80%
+        assert!(monotone[[1, 2]] <= monotone[[0, 2]]); // 6 blocks <= 3 blocks at 95%
     }
 }

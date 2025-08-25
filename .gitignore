@@ -27,14 +27,6 @@ mempool_data/
 # Benchmarks
 /target/criterion/
 
-# Documentation (except README)
-PLAN.md
-ROADMAP.md
-STATUS.md
-TEST_REPORT.md
-*.md
-!README.md
-
 # Local files (developer-specific)
 *.local.*
 
