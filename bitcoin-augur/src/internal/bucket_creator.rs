@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn parity_create_buckets_exponential_fee_rates() {
         // Matches Kotlin: "test createFeeRateBuckets with exponential fee rates"
-        
+
         // Create transactions with exponentially increasing fee rates
         let transactions = vec![
             MempoolTransaction::new(400, 100),  // 1 sat/vB
@@ -158,7 +158,10 @@ mod tests {
             (100, 400), // ln(e) * 100 = 100
             (200, 400), // ln(e^2) * 100 = 200
             (300, 400), // ln(e^3) * 100 = 300
-        ].iter().cloned().collect();
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
         assert_eq!(buckets, expected_buckets);
     }
@@ -180,7 +183,10 @@ mod tests {
         let expected_buckets: BTreeMap<i32, u64> = [
             (0, 800),   // Two transactions with fee rate 1
             (100, 800), // Two transactions with fee rate e
-        ].iter().cloned().collect();
+        ]
+        .iter()
+        .cloned()
+        .collect();
 
         assert_eq!(buckets, expected_buckets);
     }
