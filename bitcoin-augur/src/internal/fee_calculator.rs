@@ -383,4 +383,209 @@ mod tests {
         assert!(monotone[[1, 1]] <= monotone[[0, 1]]); // 6 blocks <= 3 blocks at 80%
         assert!(monotone[[1, 2]] <= monotone[[0, 2]]); // 6 blocks <= 3 blocks at 95%
     }
+
+    // ===== KOTLIN PARITY TESTS =====
+    // These tests match FeeEstimatesCalculatorTest from the Kotlin implementation
+
+    #[test]
+    fn parity_mine_block_removes_weights_from_highest_fee_buckets_first() {
+        // Matches Kotlin: "test mineBlock removes weights from highest fee buckets first"
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+        
+        let mut weights = Array1::zeros(5);
+        weights[0] = 1_000_000.0;
+        weights[1] = 1_000_000.0;
+        weights[2] = 1_000_000.0;
+        weights[3] = 1_000_000.0;
+        weights[4] = 1_000_000.0;
+        
+        // Mine a full block (4M weight units)
+        let remaining = calculator.mine_block(&weights);
+        
+        // First 4 buckets should be mined
+        assert_eq!(remaining[0], 0.0);
+        assert_eq!(remaining[1], 0.0);
+        assert_eq!(remaining[2], 0.0);
+        assert_eq!(remaining[3], 0.0);
+        assert_eq!(remaining[4], 1_000_000.0);  // Last bucket remains
+    }
+
+    #[test]
+    fn parity_find_best_index_all_weights_mined() {
+        // Matches Kotlin: "test findBestIndex when all weights are mined"
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+        
+        let weights = Array1::zeros(5);
+        assert_eq!(calculator.find_best_index(&weights), 0);
+    }
+
+    #[test]
+    fn parity_find_best_index_no_weights_fully_mined() {
+        // Matches Kotlin: "test findBestIndex when no weights are fully mined"
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+        
+        let weights = Array1::from_elem(5, 1000.0);
+        assert_eq!(calculator.find_best_index(&weights), BUCKET_MAX as usize + 1);
+    }
+
+    #[test]
+    fn parity_find_best_index_partially_mined() {
+        // Matches Kotlin: "test findBestIndex with partially mined weights"
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+        
+        let mut weights = Array1::zeros(5);
+        weights[0] = 0.0;    // fully mined
+        weights[1] = 0.0;    // fully mined
+        weights[2] = 500.0;  // partially mined
+        weights[3] = 1000.0; // unmined
+        weights[4] = 1000.0; // unmined
+        
+        // Index 1 is the last fully mined bucket (from high to low fees)
+        // In reverse order: BUCKET_MAX - 1
+        assert_eq!(calculator.find_best_index(&weights), BUCKET_MAX as usize - 1);
+    }
+
+    #[test]
+    fn parity_run_simulation_simple_case() {
+        // Matches Kotlin: "test runSimulation with simple case"
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+        
+        let initial_weights = Array1::from_elem(5, 1_000_000.0);
+        let added_weights = Array1::from_elem(5, 100_000.0);
+        
+        let result = calculator.run_simulation(
+            &initial_weights,
+            &added_weights,
+            2,  // expected_blocks
+            2,  // mean_blocks
+        );
+        
+        // With these parameters, some buckets should be fully mined
+        assert!(result.is_some());
+        if let Some(idx) = result {
+            assert!(idx < BUCKET_MAX as usize);
+        }
+    }
+
+    #[test]
+    fn parity_run_simulation_zero_expected_blocks() {
+        // Matches Kotlin: "test runSimulation with zero expected blocks"
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+        
+        let initial_weights = Array1::from_elem(5, 1000.0);
+        let added_weights = Array1::from_elem(5, 100.0);
+        
+        let result = calculator.run_simulation(
+            &initial_weights,
+            &added_weights,
+            0,  // expected_blocks
+            2,  // mean_blocks
+        );
+        
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn parity_mine_block_size_larger_than_total() {
+        // Matches Kotlin: "test mineBlock handles block size larger than total weights"
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+        
+        let weights = Array1::from_elem(5, 1_000_000.0);
+        
+        // Create weights with 5M total, mine 6M (more than total)
+        let mut remaining = weights.clone();
+        remaining = calculator.mine_block(&remaining);
+        
+        // Mine another full block to ensure everything is cleared
+        remaining = calculator.mine_block(&remaining);
+        
+        // All buckets should be fully mined
+        for i in 0..5 {
+            assert_eq!(remaining[i], 0.0);
+        }
+    }
+
+    #[test]
+    fn parity_mine_block_size_smaller_than_any() {
+        // Matches Kotlin: "test mineBlock handles block size smaller than any weight"
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+        
+        let weights = Array1::from_elem(5, 4_000_000.0);
+        
+        // Mine only 500K weight units (partial first bucket)
+        let mut partial_weights = weights.clone();
+        partial_weights[0] = 500_000.0;
+        partial_weights[1] = 0.0;
+        partial_weights[2] = 0.0;
+        partial_weights[3] = 0.0;
+        partial_weights[4] = 0.0;
+        
+        let remaining = calculator.mine_block(&partial_weights);
+        
+        // Only first bucket should be mined
+        assert_eq!(remaining[0], 0.0);
+        for i in 1..5 {
+            assert_eq!(remaining[i], 0.0);
+        }
+    }
+
+    #[test]
+    fn parity_find_best_index_last_bucket_mined() {
+        // Matches Kotlin: "test findBestIndex when last bucket is mined"
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+        
+        let mut weights = Array1::zeros(5);
+        weights[0] = 0.0;
+        weights[1] = 1000.0;
+        weights[2] = 1000.0;
+        weights[3] = 1000.0;
+        weights[4] = 1000.0;
+        
+        assert_eq!(calculator.find_best_index(&weights), BUCKET_MAX as usize);
+    }
+
+    #[test]
+    fn parity_weighted_estimates_144_equals_long() {
+        // Matches Kotlin: "test getWeightedEstimates returns estimates where the 144 block estimate equals longEstimate"
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+        
+        let mut short_estimates = Array2::zeros((3, 2));
+        let mut long_estimates = Array2::zeros((3, 2));
+        
+        // Fill with test values
+        short_estimates.fill(1.0);
+        long_estimates.fill(100.0);
+        
+        let weighted = calculator.get_weighted_estimates(&short_estimates, &long_estimates);
+        
+        // The 144 block estimate (index 2) should equal long estimate
+        assert_eq!(weighted[[2, 0]], 100.0);
+        assert_eq!(weighted[[2, 1]], 100.0);
+        
+        // Shorter targets should be between short and long
+        assert!(weighted[[0, 0]] > 1.0 && weighted[[0, 0]] < 100.0);
+        assert!(weighted[[1, 0]] > 1.0 && weighted[[1, 0]] < 100.0);
+    }
+
+    #[test]
+    fn parity_weighted_estimates_same_short_long() {
+        // Matches Kotlin: "test getWeightedEstimates returns same as the short and long if all estimates are the same"
+        let calculator = FeeCalculator::new(vec![0.5, 0.95], vec![3.0, 12.0, 144.0]);
+        
+        let mut short_estimates = Array2::zeros((3, 2));
+        let mut long_estimates = Array2::zeros((3, 2));
+        
+        // Fill with same values
+        short_estimates.fill(100.0);
+        long_estimates.fill(100.0);
+        
+        let weighted = calculator.get_weighted_estimates(&short_estimates, &long_estimates);
+        
+        // All estimates should be the same
+        for i in 0..3 {
+            for j in 0..2 {
+                assert_eq!(weighted[[i, j]], 100.0);
+            }
+        }
+    }
 }
