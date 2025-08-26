@@ -42,7 +42,7 @@ jobs:
           --output-dir target/coverage \
           --exclude-files "*/tests/*" "*/benches/*" \
           --exclude bitcoin-augur-integration-tests \
-          --timeout 120 \
+          --timeout 300 \
           --skip-clean
     
     - name: Upload coverage to Codecov
