@@ -60,7 +60,7 @@ jobs:
       run: nix build .#bitcoin-augur-server
     
     - name: Run benchmarks (smoke test)
-      run: nix develop -c cargo bench --package bitcoin-augur -- --quick
+      run: nix develop -c cargo bench --package bitcoin-augur -- --test
     
     - name: Check for security advisories
       run: nix develop -c cargo audit || true
