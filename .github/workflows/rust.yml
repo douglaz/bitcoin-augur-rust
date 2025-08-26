@@ -5,6 +5,9 @@ on:
     branches: [ "master", "main" ]
   pull_request:
     branches: [ "master", "main" ]
+  schedule:
+    # Run security audit daily at 2 AM UTC
+    - cron: '0 2 * * *'
 
 env:
   CARGO_TERM_COLOR: always
@@ -55,3 +58,10 @@ jobs:
     
     - name: Build with nix (static musl binary)
       run: nix build .#bitcoin-augur-server
+    
+    - name: Run benchmarks (smoke test)
+      run: nix develop -c cargo bench --package bitcoin-augur -- --test
+    
+    - name: Check for security advisories
+      run: nix develop -c cargo audit || true
+      continue-on-error: true

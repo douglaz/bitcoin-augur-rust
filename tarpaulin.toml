@@ -1,0 +1,39 @@
+# Tarpaulin configuration for code coverage
+
+[report]
+# Skip test files from coverage
+exclude-files = ["*/tests/*", "*/benches/*", "*/build.rs"]
+# Exclude integration test crate from coverage
+exclude = ["bitcoin-augur-integration-tests"]
+# Generate both HTML and LCOV reports
+out = ["Html", "Lcov", "Xml"]
+# Output directory for coverage reports
+output-dir = "target/coverage"
+
+[run]
+# Run all test types
+all-targets = true
+# Include doc tests
+doc = true
+# Use multiple threads for faster execution
+jobs = 4
+# Timeout for each test
+timeout = "5m"
+# Follow exec calls (useful for testing binaries)
+follow-exec = true
+# Skip clean to speed up repeated runs
+skip-clean = false
+# Workspace mode
+workspace = true
+
+[coverage]
+# Minimum coverage threshold (will fail if below)
+# Uncomment to enforce minimum coverage
+# min = 80.0
+
+# Branch coverage settings
+branch = true
+# Show uncovered lines in output
+print-uncovered = true
+# Print summary at the end
+print-summary = true
