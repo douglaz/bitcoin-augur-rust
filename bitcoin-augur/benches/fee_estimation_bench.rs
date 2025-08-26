@@ -1,6 +1,6 @@
 use bitcoin_augur::{FeeEstimator, MempoolSnapshot, MempoolTransaction};
 use chrono::{Duration, Utc};
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 
 /// Generate a mempool snapshot with the specified number of transactions
 fn generate_mempool_snapshot(num_transactions: usize) -> MempoolSnapshot {
