@@ -86,55 +86,5 @@ pub async fn get_fee_for_target(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::bitcoin::{BitcoinRpcClient, BitcoinRpcConfig};
-    use crate::persistence::SnapshotStore;
-    use bitcoin_augur::FeeEstimator;
-    use tempfile::TempDir;
-
-    async fn create_test_collector() -> Arc<MempoolCollector> {
-        let temp_dir = TempDir::new().unwrap();
-        let config = BitcoinRpcConfig {
-            url: "http://localhost:8332".to_string(),
-            username: "test".to_string(),
-            password: "test".to_string(),
-        };
-
-        let bitcoin_client = BitcoinRpcClient::new(config);
-        let snapshot_store = SnapshotStore::new(temp_dir.path()).unwrap();
-        let fee_estimator = FeeEstimator::new();
-
-        Arc::new(MempoolCollector::new(
-            bitcoin_client,
-            snapshot_store,
-            fee_estimator,
-        ))
-    }
-
-    #[tokio::test]
-    async fn test_get_fees_no_data() {
-        let collector = create_test_collector().await;
-        let response = get_fees(State(collector)).await;
-
-        // Should return 503 when no data available
-        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
-    }
-
-    #[tokio::test]
-    async fn test_get_fee_for_target_invalid_blocks() {
-        let collector = create_test_collector().await;
-
-        // Test negative blocks
-        let response = get_fee_for_target(Path(-1.0), State(collector.clone())).await;
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-
-        // Test excessive blocks
-        let response = get_fee_for_target(Path(1001.0), State(collector.clone())).await;
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-
-        // Test NaN
-        let response = get_fee_for_target(Path(f64::NAN), State(collector.clone())).await;
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    }
-}
+#[path = "fee_endpoint_tests.rs"]
+mod tests;
