@@ -73,7 +73,7 @@ jobs:
         run: cargo install cargo-tarpaulin
       
       - name: Generate coverage
-        run: cargo tarpaulin --all --out xml --exclude-files 'fuzz/*' --exclude-files 'tests/*' --exclude-files 'benches/*'
+        run: cargo tarpaulin --all --out xml --exclude-files 'fuzz/*' --exclude-files 'tests/*' --exclude-files 'benches/*' --timeout 300
       
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
