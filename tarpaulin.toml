@@ -17,12 +17,14 @@ all-targets = true
 doc = true
 # Use multiple threads for faster execution
 jobs = 4
-# Timeout for each test (in seconds)
-timeout = 120
+# Timeout for each test
+timeout = "2m"
 # Follow exec calls (useful for testing binaries)
 follow-exec = true
 # Skip clean to speed up repeated runs
 skip-clean = false
+# Workspace mode
+workspace = true
 
 [coverage]
 # Minimum coverage threshold (will fail if below)

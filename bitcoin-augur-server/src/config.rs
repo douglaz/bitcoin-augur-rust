@@ -179,24 +179,29 @@ mod tests {
         assert_eq!(config.collector.interval_ms, 30000);
     }
 
+    // These tests modify environment variables and must run sequentially
+    // Run with: cargo test config::tests -- --test-threads=1
+
     #[test]
     fn test_env_override() {
-        // Clean up any existing env vars
-        for var in [
+        // Clean up ALL env vars that might interfere
+        let vars_to_clean = [
             "BITCOIN_RPC_USERNAME",
             "BITCOIN_RPC_PASSWORD",
+            "BITCOIN_RPC_URL",
+            "AUGUR_SERVER_HOST",
             "AUGUR_SERVER_PORT",
             "AUGUR_BITCOIN_RPC_USERNAME",
-        ] {
+            "AUGUR_BITCOIN_RPC_PASSWORD",
+            "AUGUR_BITCOIN_RPC_URL",
+        ];
+
+        for var in vars_to_clean.iter() {
             env::remove_var(var);
         }
 
         // Test using BITCOIN_RPC_ prefix which we know works
         env::set_var("BITCOIN_RPC_USERNAME", "testuser");
-
-        // Also test simple top-level env var which should work
-        // Note: nested config with underscore separator may not work as expected with config crate
-        // The BITCOIN_RPC_ prefix is the recommended way for Bitcoin configuration
 
         let config = AppConfig::load().unwrap();
         assert_eq!(config.bitcoin_rpc.username, "testuser");
@@ -207,13 +212,19 @@ mod tests {
 
     #[test]
     fn test_bitcoin_rpc_env() {
-        // Clean up any existing env vars
-        for var in [
-            "AUGUR_BITCOIN_RPC_USERNAME",
-            "AUGUR_BITCOIN_RPC_PASSWORD",
+        // Clean up ALL env vars that might interfere
+        let vars_to_clean = [
             "BITCOIN_RPC_USERNAME",
             "BITCOIN_RPC_PASSWORD",
-        ] {
+            "BITCOIN_RPC_URL",
+            "AUGUR_SERVER_HOST",
+            "AUGUR_SERVER_PORT",
+            "AUGUR_BITCOIN_RPC_USERNAME",
+            "AUGUR_BITCOIN_RPC_PASSWORD",
+            "AUGUR_BITCOIN_RPC_URL",
+        ];
+
+        for var in vars_to_clean.iter() {
             env::remove_var(var);
         }
 

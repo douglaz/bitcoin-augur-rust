@@ -37,6 +37,7 @@ jobs:
     - name: Generate code coverage
       run: |
         nix develop -c cargo tarpaulin \
+          --workspace \
           --out Xml \
           --output-dir target/coverage \
           --exclude-files "*/tests/*" "*/benches/*" \
@@ -63,6 +64,7 @@ jobs:
     - name: Coverage summary
       run: |
         nix develop -c cargo tarpaulin \
+          --workspace \
           --print-summary \
           --exclude-files "*/tests/*" "*/benches/*" \
           --exclude bitcoin-augur-integration-tests

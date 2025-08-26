@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        rust: [stable, "1.75.0"]  # Test with stable and MSRV
+        rust: [stable, "1.79.0"]  # Test with stable and MSRV
         include:
           # Additional specific test combinations
           - os: ubuntu-latest
@@ -121,7 +121,7 @@ jobs:
     - name: Extract MSRV from Cargo.toml
       id: msrv
       run: |
-        MSRV=$(grep -m1 'rust-version' Cargo.toml | cut -d'"' -f2 || echo "1.75.0")
+        MSRV=$(grep -m1 'rust-version' Cargo.toml | cut -d'"' -f2 || echo "1.79.0")
         echo "version=$MSRV" >> $GITHUB_OUTPUT
     
     - name: Install MSRV Rust
