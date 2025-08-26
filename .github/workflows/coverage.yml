@@ -1,0 +1,68 @@
+name: Code Coverage
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v5
+    
+    - name: Install Nix
+      uses: cachix/install-nix-action@v31
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+    
+    - name: Cache Cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: cargo-registry-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          cargo-registry-${{ runner.os }}-
+    
+    - name: Generate code coverage
+      run: |
+        nix develop -c cargo tarpaulin \
+          --out Xml \
+          --output-dir target/coverage \
+          --exclude-files "*/tests/*" "*/benches/*" \
+          --exclude bitcoin-augur-integration-tests \
+          --timeout 120 \
+          --skip-clean
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./target/coverage/cobertura.xml
+        flags: unittests
+        name: codecov-bitcoin-augur
+        fail_ci_if_error: false
+    
+    - name: Archive coverage results
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: target/coverage/
+        retention-days: 7
+    
+    - name: Coverage summary
+      run: |
+        nix develop -c cargo tarpaulin \
+          --print-summary \
+          --exclude-files "*/tests/*" "*/benches/*" \
+          --exclude bitcoin-augur-integration-tests

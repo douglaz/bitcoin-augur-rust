@@ -35,6 +35,7 @@
             cargo-watch
             cargo-audit
             cargo-outdated
+            cargo-tarpaulin
             git
             just
             bacon
@@ -57,6 +58,7 @@
             echo "  cargo build --release                            # Build optimized for musl"
             echo "  cargo test                                       # Run tests"
             echo "  cargo bench                                      # Run benchmarks"
+            echo "  cargo tarpaulin                                  # Generate code coverage report"
             echo ""
             echo "Rust version: $(rustc --version)"
             echo "Default target: x86_64-unknown-linux-musl"
