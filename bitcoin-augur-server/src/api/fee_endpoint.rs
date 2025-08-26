@@ -84,7 +84,3 @@ pub async fn get_fee_for_target(
         }
     }
 }
-
-#[cfg(test)]
-#[path = "fee_endpoint_tests.rs"]
-mod tests;

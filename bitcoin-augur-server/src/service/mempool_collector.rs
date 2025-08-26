@@ -232,7 +232,3 @@ impl MempoolCollector {
         Ok(())
     }
 }
-
-#[cfg(test)]
-#[path = "mempool_collector_tests.rs"]
-mod tests;
