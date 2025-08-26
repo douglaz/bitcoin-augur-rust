@@ -134,24 +134,27 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
-    services:
-      bitcoind:
-        image: ruimarinho/bitcoin-core:latest
-        ports:
-          - 8332:8332
-        env:
-          BITCOIN_RPC_USER: test
-          BITCOIN_RPC_PASSWORD: test
-        options: >-
-          --health-cmd "bitcoin-cli -regtest -rpcuser=test -rpcpassword=test getblockcount || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+      
+      - name: Start Bitcoin Core
+        run: |
+          docker run -d --name bitcoind \
+            -p 8332:8332 \
+            ruimarinho/bitcoin-core:24 \
+            -regtest \
+            -rpcallowip=0.0.0.0/0 \
+            -rpcbind=0.0.0.0 \
+            -rpcuser=test \
+            -rpcpassword=test \
+            -server
+          
+          # Wait for Bitcoin Core to be ready
+          sleep 10
+          docker exec bitcoind bitcoin-cli -regtest -rpcuser=test -rpcpassword=test getblockcount
       
       - name: Run integration tests
         env:
@@ -159,6 +162,10 @@ jobs:
           BITCOIN_RPC_USER: test
           BITCOIN_RPC_PASSWORD: test
         run: cargo test --package bitcoin-augur-integration-tests
+      
+      - name: Stop Bitcoin Core
+        if: always()
+        run: docker stop bitcoind && docker rm bitcoind
 
   stress-tests:
     name: Stress Tests
