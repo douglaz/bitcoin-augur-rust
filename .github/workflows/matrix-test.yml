@@ -17,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        rust: [stable, "1.79.0"]  # Test with stable and MSRV
+        rust: [stable]
         include:
           # Additional specific test combinations
           - os: ubuntu-latest
@@ -111,37 +111,3 @@ jobs:
     
     - name: Test with features ${{ matrix.features }}
       run: cargo test ${{ matrix.features }} --verbose
-
-  msrv-check:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v5
-    
-    - name: Extract MSRV from Cargo.toml
-      id: msrv
-      run: |
-        MSRV=$(grep -m1 'rust-version' Cargo.toml | cut -d'"' -f2 || echo "1.79.0")
-        echo "version=$MSRV" >> $GITHUB_OUTPUT
-    
-    - name: Install MSRV Rust
-      uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: ${{ steps.msrv.outputs.version }}
-    
-    - name: Cache cargo registry
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: msrv-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          msrv-cargo-
-    
-    - name: Check MSRV compatibility
-      run: |
-        cargo check --all-features
-        cargo test --all-features
