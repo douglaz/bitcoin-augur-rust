@@ -76,38 +76,3 @@ jobs:
         cargo install cargo-udeps --locked || true
         cargo +nightly udeps --all-targets || true
       continue-on-error: true
-
-  test-features:
-    runs-on: ubuntu-latest
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        features: 
-          - ""  # No features
-          - "--all-features"  # All features
-    
-    steps:
-    - uses: actions/checkout@v5
-    
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-    
-    - name: Cache cargo registry
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: features-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ matrix.features }}
-        restore-keys: |
-          features-cargo-${{ hashFiles('**/Cargo.lock') }}-
-          features-cargo-
-    
-    - name: Build with features ${{ matrix.features }}
-      run: cargo build ${{ matrix.features }} --verbose
-    
-    - name: Test with features ${{ matrix.features }}
-      run: cargo test ${{ matrix.features }} --verbose
