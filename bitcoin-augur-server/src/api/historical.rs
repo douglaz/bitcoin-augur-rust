@@ -31,14 +31,20 @@ pub async fn get_historical_fee(
     // Validate timestamp (must be reasonable - not in future, not too far in past)
     let now = chrono::Utc::now().timestamp();
     if params.timestamp > now {
-        warn!("Timestamp {} is in the future", params.timestamp);
+        warn!(
+            "Timestamp {timestamp} is in the future",
+            timestamp = params.timestamp
+        );
         return (StatusCode::BAD_REQUEST, "Timestamp cannot be in the future").into_response();
     }
 
     // Don't allow timestamps more than 1 year in the past
     let one_year_ago = now - (365 * 24 * 60 * 60);
     if params.timestamp < one_year_ago {
-        warn!("Timestamp {} is too far in the past", params.timestamp);
+        warn!(
+            "Timestamp {timestamp} is too far in the past",
+            timestamp = params.timestamp
+        );
         return (
             StatusCode::BAD_REQUEST,
             "Timestamp is too far in the past (max 1 year)",
@@ -69,7 +75,7 @@ pub async fn get_historical_fee(
             }
         }
         Err(err) => {
-            warn!("Failed to get historical fee estimates: {}", err);
+            warn!("Failed to get historical fee estimates: {err}");
 
             // Check error type for appropriate response
             if err.to_string().contains("InvalidTimestamp") {

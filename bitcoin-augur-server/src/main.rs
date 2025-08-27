@@ -64,11 +64,21 @@ async fn main() -> Result<()> {
     let config = AppConfig::load().context("Failed to load configuration")?;
 
     info!("Configuration loaded:");
-    info!("  Server: {}:{}", config.server.host, config.server.port);
-    info!("  Bitcoin RPC: {}", config.bitcoin_rpc.url);
-    info!("  Data directory: {}", config.persistence.data_directory);
-    info!("  Collection interval: {}ms", config.collector.interval_ms);
-    info!("  Test mode: {}", config.test_mode.enabled);
+    info!(
+        "  Server: {host}:{port}",
+        host = config.server.host,
+        port = config.server.port
+    );
+    info!("  Bitcoin RPC: {url}", url = config.bitcoin_rpc.url);
+    info!(
+        "  Data directory: {dir}",
+        dir = config.persistence.data_directory
+    );
+    info!(
+        "  Collection interval: {interval}ms",
+        interval = config.collector.interval_ms
+    );
+    info!("  Test mode: {enabled}", enabled = config.test_mode.enabled);
 
     // Initialize Bitcoin RPC client (use mock if in test mode)
     let bitcoin_client = if config.test_mode.enabled {
@@ -81,7 +91,7 @@ async fn main() -> Result<()> {
         match client.test_connection().await {
             Ok(_) => info!("Successfully connected to Bitcoin Core"),
             Err(e) => {
-                error!("Failed to connect to Bitcoin Core: {}", e);
+                error!("Failed to connect to Bitcoin Core: {e}");
                 error!("Please ensure Bitcoin Core is running and RPC credentials are correct");
                 // Continue anyway - the collector will retry
             }
@@ -117,9 +127,9 @@ async fn main() -> Result<()> {
     let collector_handle = collector.clone();
     let interval_ms = config.collector.interval_ms;
     tokio::spawn(async move {
-        info!("Starting mempool collector with {}ms interval", interval_ms);
+        info!("Starting mempool collector with {interval_ms}ms interval");
         if let Err(e) = collector_handle.start(interval_ms).await {
-            error!("Mempool collector error: {}", e);
+            error!("Mempool collector error: {e}");
         }
     });
 
@@ -135,8 +145,8 @@ async fn main() -> Result<()> {
                 cleanup_days
             );
             match collector_cleanup.cleanup_old_snapshots(cleanup_days).await {
-                Ok(deleted) => info!("Cleaned up {} old snapshot directories", deleted),
-                Err(e) => error!("Cleanup failed: {}", e),
+                Ok(deleted) => info!("Cleaned up {deleted} old snapshot directories"),
+                Err(e) => error!("Cleanup failed: {e}"),
             }
         }
     });
