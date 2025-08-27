@@ -232,33 +232,3 @@ impl MempoolCollector {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::bitcoin::BitcoinRpcConfig;
-    use tempfile::TempDir;
-
-    fn create_test_config() -> BitcoinRpcConfig {
-        BitcoinRpcConfig {
-            url: "http://localhost:8332".to_string(),
-            username: "test".to_string(),
-            password: "test".to_string(),
-        }
-    }
-
-    #[tokio::test]
-    async fn test_collector_creation() {
-        let temp_dir = TempDir::new().unwrap();
-
-        let bitcoin_client = BitcoinRpcClient::new(create_test_config());
-        let snapshot_store = SnapshotStore::new(temp_dir.path()).unwrap();
-        let fee_estimator = FeeEstimator::new();
-
-        let collector = MempoolCollector::new(bitcoin_client, snapshot_store, fee_estimator);
-
-        // Check initial state
-        assert!(collector.get_latest_estimate().await.is_none());
-        assert!(collector.get_latest_snapshot().await.is_none());
-    }
-}

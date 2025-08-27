@@ -1,5 +1,6 @@
 [workspace]
 members = ["bitcoin-augur", "bitcoin-augur-server", "bitcoin-augur-integration-tests"]
+exclude = ["fuzz"]
 resolver = "2"
 
 [workspace.package]

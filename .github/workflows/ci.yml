@@ -1,0 +1,180 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly security audit
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+      
+      - name: Cache cargo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Build
+        run: cargo build --all --release
+      
+      - name: Run tests
+        run: cargo test --all
+      
+      - name: Run clippy
+        run: cargo clippy --all -- -D warnings
+      
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+  benchmarks:
+    name: Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Run benchmarks
+        run: cargo bench --all
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Install tarpaulin
+        run: cargo install cargo-tarpaulin
+      
+      - name: Generate coverage
+        run: cargo tarpaulin --all --out xml --exclude-files 'fuzz/*' --exclude-files 'tests/*' --exclude-files 'benches/*' --timeout 300
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./cobertura.xml
+          fail_ci_if_error: false
+
+  fuzz:
+    name: Fuzz Testing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+      
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz
+      
+      - name: Build fuzz targets
+        run: cargo fuzz build
+      
+      # Just build in CI, don't run long fuzzing sessions
+      - name: Check fuzz targets compile
+        run: |
+          for target in fee_calculation snapshot_parsing api_input_validation rpc_response_parsing; do
+            echo "Building fuzz target: $target"
+            cargo fuzz build $target
+          done
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run security audit
+        uses: rustsec/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  dependency-check:
+    name: Dependency License Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install cargo-deny
+        run: |
+          wget https://github.com/EmbarkStudios/cargo-deny/releases/download/0.14.3/cargo-deny-0.14.3-x86_64-unknown-linux-musl.tar.gz
+          tar -xzf cargo-deny-0.14.3-x86_64-unknown-linux-musl.tar.gz
+          mv cargo-deny-0.14.3-x86_64-unknown-linux-musl/cargo-deny ./cargo-deny
+          chmod +x ./cargo-deny
+      
+      - name: Check dependencies
+        run: ./cargo-deny check
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Start Bitcoin Core
+        run: |
+          docker run -d --name bitcoind \
+            -p 8332:8332 \
+            ruimarinho/bitcoin-core:24 \
+            -regtest \
+            -rpcallowip=0.0.0.0/0 \
+            -rpcbind=0.0.0.0 \
+            -rpcuser=test \
+            -rpcpassword=test \
+            -server
+          
+          # Wait for Bitcoin Core to be ready
+          sleep 10
+          docker exec bitcoind bitcoin-cli -regtest -rpcuser=test -rpcpassword=test getblockcount
+      
+      - name: Run integration tests
+        env:
+          BITCOIN_RPC_URL: http://localhost:8332
+          BITCOIN_RPC_USER: test
+          BITCOIN_RPC_PASSWORD: test
+        run: cargo test --package bitcoin-augur-integration-tests
+      
+      - name: Stop Bitcoin Core
+        if: always()
+        run: docker stop bitcoind && docker rm bitcoind
+
+  stress-tests:
+    name: Stress Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Run stress tests
+        run: cargo test --package bitcoin-augur stress_test -- --test-threads=1 --nocapture

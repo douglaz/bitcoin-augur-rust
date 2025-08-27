@@ -212,8 +212,19 @@ impl SnapshotStore {
 mod tests {
     use super::*;
     use bitcoin_augur::MempoolTransaction;
-    use chrono::Utc;
+    use chrono::{TimeZone, Utc};
+    use pretty_assertions::assert_eq;
+    use std::fs;
     use tempfile::TempDir;
+
+    fn create_test_snapshot(block_height: u32, timestamp: DateTime<Utc>) -> MempoolSnapshot {
+        let transactions = vec![
+            MempoolTransaction::new(1000, 2000),
+            MempoolTransaction::new(500, 1500),
+            MempoolTransaction::new(250, 1000),
+        ];
+        MempoolSnapshot::from_transactions(transactions, block_height, timestamp)
+    }
 
     #[test]
     fn test_snapshot_store_creation() -> Result<(), PersistenceError> {
@@ -310,6 +321,152 @@ mod tests {
         let remaining = store.get_recent_snapshots(1)?;
         assert_eq!(remaining.len(), 1);
         assert_eq!(remaining[0].block_height, 850001);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_directory_structure() -> Result<(), PersistenceError> {
+        let temp_dir = TempDir::new().unwrap();
+        let store = SnapshotStore::new(temp_dir.path())?;
+
+        let timestamp = Utc.with_ymd_and_hms(2024, 6, 15, 14, 30, 0).unwrap();
+        let snapshot = create_test_snapshot(850000, timestamp);
+
+        store.save_snapshot(&snapshot)?;
+
+        // Check that the correct directory structure was created
+        let expected_dir = temp_dir.path().join("2024-06-15");
+        assert!(expected_dir.exists());
+        assert!(expected_dir.is_dir());
+
+        // Check that the file exists with correct naming
+        let expected_file = expected_dir.join(format!("850000_{}.json", timestamp.timestamp()));
+        assert!(expected_file.exists());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_snapshots_time_range() -> Result<(), PersistenceError> {
+        let temp_dir = TempDir::new().unwrap();
+        let store = SnapshotStore::new(temp_dir.path())?;
+
+        // Create snapshots at different times
+        let base_time = Utc::now();
+        for i in 0..5 {
+            let timestamp = base_time - chrono::Duration::hours(i * 2);
+            let snapshot = create_test_snapshot(850000 + i as u32, timestamp);
+            store.save_snapshot(&snapshot)?;
+        }
+
+        // Query a specific time range (last 6 hours)
+        let start = Local::now() - chrono::Duration::hours(6);
+        let end = Local::now();
+        let snapshots = store.get_snapshots(start, end)?;
+
+        // Should get 3 snapshots (0, 2, 4 hours ago)
+        assert_eq!(snapshots.len(), 3);
+
+        // Verify they're sorted by timestamp
+        for i in 0..snapshots.len() - 1 {
+            assert!(snapshots[i].timestamp <= snapshots[i + 1].timestamp);
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_extract_timestamp_from_filename() {
+        use std::path::Path;
+
+        let path = Path::new("/data/2024-06-15/850000_1718458200.json");
+        let timestamp = SnapshotStore::extract_timestamp_from_filename(path);
+        assert_eq!(timestamp, Some(1718458200));
+
+        let path = Path::new("/data/850000.json");
+        let timestamp = SnapshotStore::extract_timestamp_from_filename(path);
+        assert_eq!(timestamp, None);
+
+        let path = Path::new("/data/invalid_filename.json");
+        let timestamp = SnapshotStore::extract_timestamp_from_filename(path);
+        assert_eq!(timestamp, None);
+    }
+
+    #[test]
+    fn test_persistence_error_handling() -> Result<(), PersistenceError> {
+        // Test invalid path
+        let result = SnapshotStore::new("/nonexistent/readonly/path");
+        assert!(result.is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_corrupted_json_handling() -> Result<(), PersistenceError> {
+        let temp_dir = TempDir::new().unwrap();
+        let store = SnapshotStore::new(temp_dir.path())?;
+
+        // Create a valid snapshot first
+        let snapshot = create_test_snapshot(850000, Utc::now());
+        store.save_snapshot(&snapshot)?;
+
+        // Manually create a corrupted JSON file
+        let date_str = Utc::now().format("%Y-%m-%d").to_string();
+        let date_dir = temp_dir.path().join(&date_str);
+        let corrupted_file = date_dir.join("850001_1234567890.json");
+        fs::write(&corrupted_file, "{ invalid json }")?;
+
+        // Try to retrieve snapshots - should skip the corrupted one
+        let result = store.get_recent_snapshots(1);
+
+        // Should succeed but only return the valid snapshot
+        assert!(result.is_ok());
+        let snapshots = result?;
+        assert_eq!(snapshots.len(), 1);
+        assert_eq!(snapshots[0].block_height, 850000);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_empty_directory_handling() -> Result<(), PersistenceError> {
+        let temp_dir = TempDir::new().unwrap();
+        let store = SnapshotStore::new(temp_dir.path())?;
+
+        // Query empty store
+        let snapshots = store.get_recent_snapshots(24)?;
+        assert_eq!(snapshots.len(), 0);
+
+        let latest = store.get_latest_snapshot()?;
+        assert!(latest.is_none());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_large_snapshot_handling() -> Result<(), PersistenceError> {
+        let temp_dir = TempDir::new().unwrap();
+        let store = SnapshotStore::new(temp_dir.path())?;
+
+        // Create a large snapshot with many transactions
+        let mut transactions = Vec::new();
+        for i in 0..10000 {
+            transactions.push(MempoolTransaction::new(400 + (i % 1000), 1000 + (i % 5000)));
+        }
+
+        let large_snapshot = MempoolSnapshot::from_transactions(transactions, 850000, Utc::now());
+
+        // Save and retrieve
+        store.save_snapshot(&large_snapshot)?;
+        let retrieved = store.get_recent_snapshots(1)?;
+
+        assert_eq!(retrieved.len(), 1);
+        assert_eq!(retrieved[0].block_height, 850000);
+        assert_eq!(
+            retrieved[0].bucketed_weights.len(),
+            large_snapshot.bucketed_weights.len()
+        );
 
         Ok(())
     }

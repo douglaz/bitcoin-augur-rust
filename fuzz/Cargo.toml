@@ -1,0 +1,48 @@
+[package]
+name = "bitcoin-augur-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+serde_json = "1.0"
+chrono = "0.4"
+
+[dependencies.bitcoin-augur]
+path = "../bitcoin-augur"
+
+[dependencies.bitcoin-augur-server]
+path = "../bitcoin-augur-server"
+
+# Fuzz targets
+[[bin]]
+name = "fee_calculation"
+path = "fuzz_targets/fee_calculation.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "snapshot_parsing"
+path = "fuzz_targets/snapshot_parsing.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "api_input_validation"
+path = "fuzz_targets/api_input_validation.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "rpc_response_parsing"
+path = "fuzz_targets/rpc_response_parsing.rs"
+test = false
+doc = false
+bench = false

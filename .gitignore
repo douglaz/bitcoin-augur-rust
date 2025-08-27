@@ -29,6 +29,7 @@ mempool_data/
 
 # Local files (developer-specific)
 *.local.*
+.cargo/config.toml
 
 # Log files
 *.log
