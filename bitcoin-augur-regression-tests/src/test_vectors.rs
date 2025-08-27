@@ -59,10 +59,10 @@ impl TestVectorRunner {
     pub async fn load_vectors(path: &Path) -> Result<Vec<TestVector>> {
         let content = tokio::fs::read_to_string(path)
             .await
-            .with_context(|| format!("Failed to read test vectors from {:?}", path))?;
+            .with_context(|| format!("Failed to read test vectors from {path:?}"))?;
 
         serde_json::from_str(&content)
-            .with_context(|| format!("Failed to parse test vectors from {:?}", path))
+            .with_context(|| format!("Failed to parse test vectors from {path:?}"))
     }
 
     /// Generate default test vectors
@@ -302,7 +302,7 @@ impl TestVectorRunner {
 
     /// Run test vector
     pub fn run_vector(vector: &TestVector) -> Result<TestVectorResult> {
-        info!("Running test vector: {}", vector.name);
+        info!("Running test vector: {name}", name = vector.name);
 
         let estimator = bitcoin_augur::FeeEstimator::new();
 
@@ -349,9 +349,9 @@ impl TestVectorRunner {
                             actual: Some(fee),
                             passed: diff <= tolerance,
                             message: if diff <= tolerance {
-                                format!("Within tolerance (diff: {:.4})", diff)
+                                format!("Within tolerance (diff: {diff:.4})")
                             } else {
-                                format!("Outside tolerance (diff: {:.4} > {:.4})", diff, tolerance)
+                                format!("Outside tolerance (diff: {diff:.4} > {tolerance:.4})")
                             },
                         }
                     } else {
@@ -375,7 +375,10 @@ impl TestVectorRunner {
                         expected: expected_prob.fee_rate,
                         actual: None,
                         passed: false,
-                        message: format!("No estimates for {} blocks", expected_target.blocks),
+                        message: format!(
+                            "No estimates for {blocks} blocks",
+                            blocks = expected_target.blocks
+                        ),
                     });
                 }
             }
@@ -428,7 +431,11 @@ impl TestVectorResult {
             "FAILED".red()
         };
 
-        println!("\nTest Vector: {} [{}]", self.name, status);
+        println!(
+            "\nTest Vector: {name} [{status}]",
+            name = self.name,
+            status = status
+        );
         println!("{}", "-".repeat(60));
 
         for validation in &self.validations {
@@ -440,7 +447,7 @@ impl TestVectorResult {
 
             let actual_str = validation
                 .actual
-                .map(|v| format!("{:.4}", v))
+                .map(|v| format!("{v:.4}"))
                 .unwrap_or_else(|| "N/A".to_string());
 
             println!(

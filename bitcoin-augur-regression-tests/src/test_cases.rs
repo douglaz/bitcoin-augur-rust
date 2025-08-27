@@ -123,8 +123,8 @@ impl TestCaseGenerator {
             .collect();
 
         TestCase {
-            name: format!("uniform_fee_{}", base_fee),
-            description: format!("Uniform distribution at {} sat/vB", base_fee),
+            name: format!("uniform_fee_{base_fee}"),
+            description: format!("Uniform distribution at {base_fee} sat/vB"),
             mempool_state: MempoolState {
                 transactions,
                 block_height: 850000 + rng.gen_range(0..1000),
@@ -322,8 +322,8 @@ impl TestCaseGenerator {
             .collect();
 
         TestCase {
-            name: format!("random_{}", count),
-            description: format!("Random distribution with {} txs", count),
+            name: format!("random_{count}"),
+            description: format!("Random distribution with {count} txs"),
             mempool_state: MempoolState {
                 transactions,
                 block_height: 850000 + rng.gen_range(0..1000),

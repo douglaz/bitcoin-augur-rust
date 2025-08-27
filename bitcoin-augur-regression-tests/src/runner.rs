@@ -113,7 +113,7 @@ impl TestRunner {
                 match self.run_snapshot_tests(false).await {
                     Ok(()) => info!("Snapshot tests completed"),
                     Err(e) => {
-                        error!("Snapshot tests failed: {}", e);
+                        error!("Snapshot tests failed: {e}");
                         all_passed = false;
                     }
                 }
@@ -124,7 +124,7 @@ impl TestRunner {
                 match self.run_compatibility_tests(false).await {
                     Ok(()) => info!("Compatibility tests completed"),
                     Err(e) => {
-                        error!("Compatibility tests failed: {}", e);
+                        error!("Compatibility tests failed: {e}");
                         all_passed = false;
                     }
                 }
@@ -138,7 +138,7 @@ impl TestRunner {
             match self.run_vector_tests(None).await {
                 Ok(()) => info!("Test vector validation completed"),
                 Err(e) => {
-                    error!("Test vector validation failed: {}", e);
+                    error!("Test vector validation failed: {e}");
                     all_passed = false;
                 }
             }
@@ -148,7 +148,8 @@ impl TestRunner {
         self.stop_servers().await?;
 
         if all_passed {
-            println!("\n{}", "All tests passed!".green().bold());
+            let message = "All tests passed!".green().bold();
+            println!("\n{message}");
             Ok(())
         } else {
             Err(anyhow!("Some tests failed"))
@@ -239,7 +240,7 @@ impl TestRunner {
             TestVectorRunner::generate_default_vectors()
         };
 
-        info!("Running {} test vectors", vectors.len());
+        info!("Running {count} test vectors", count = vectors.len());
 
         let semaphore = Arc::new(Semaphore::new(self.jobs));
         let mut tasks = Vec::new();
@@ -273,11 +274,11 @@ impl TestRunner {
                     }
                 }
                 Ok(Err(e)) => {
-                    error!("Test vector failed: {}", e);
+                    error!("Test vector failed: {e}");
                     all_passed = false;
                 }
                 Err(e) => {
-                    error!("Task failed: {}", e);
+                    error!("Task failed: {e}");
                     all_passed = false;
                 }
             }
@@ -292,7 +293,7 @@ impl TestRunner {
 
     /// Generate test data
     pub async fn generate_test_data(&mut self, output: PathBuf, count: usize) -> Result<()> {
-        info!("Generating {} test cases", count);
+        info!("Generating {count} test cases");
 
         // Generate test cases
         let test_cases = TestCaseGenerator::generate(count);
@@ -310,16 +311,13 @@ impl TestRunner {
         TestVectorRunner::save_vectors(&vectors, &vectors_path).await?;
         info!("Saved test vectors to {:?}", vectors_path);
 
-        println!(
-            "\n{}",
-            format!(
-                "Generated {} test cases and {} test vectors",
-                count,
-                vectors.len()
-            )
-            .green()
-            .bold()
-        );
+        let message = format!(
+            "Generated {count} test cases and {vec_count} test vectors",
+            vec_count = vectors.len()
+        )
+        .green()
+        .bold();
+        println!("\n{message}");
 
         Ok(())
     }
@@ -331,7 +329,7 @@ impl TestRunner {
         endpoint2: &str,
         path: &str,
     ) -> Result<()> {
-        info!("Comparing endpoints: {} vs {}", endpoint1, endpoint2);
+        info!("Comparing endpoints: {endpoint1} vs {endpoint2}");
 
         let client1 = ApiClient::new(endpoint1.to_string());
         let client2 = ApiClient::new(endpoint2.to_string());
@@ -340,23 +338,23 @@ impl TestRunner {
         let (status2, body2) = client2.get_raw(path).await?;
 
         if status1 != status2 {
-            println!(
-                "{} Status codes differ: {} vs {}",
-                "✗".red(),
-                status1,
-                status2
-            );
+            println!("{} Status codes differ: {status1} vs {status2}", "✗".red());
             return Err(anyhow!("Status codes differ"));
         }
 
         let differences = crate::api_client::ResponseComparator::compare_json(&body1, &body2, "");
 
         if differences.is_empty() {
-            println!("{} Responses are identical", "✓".green());
+            let check = "✓".green();
+            println!("{check} Responses are identical");
         } else {
-            println!("{} Found {} differences:", "⚠".yellow(), differences.len());
+            let warning = "⚠".yellow();
+            println!(
+                "{warning} Found {count} differences:",
+                count = differences.len()
+            );
             for diff in &differences {
-                println!("  - {}", diff);
+                println!("  - {diff}");
             }
         }
 

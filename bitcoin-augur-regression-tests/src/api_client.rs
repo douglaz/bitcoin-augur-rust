@@ -29,7 +29,7 @@ impl ApiClient {
     /// Get fee estimates for all targets
     pub async fn get_fees(&self) -> Result<FeeEstimateResponse> {
         let url = format!("{}/fees", self.base_url);
-        debug!("Getting fee estimates from {}", url);
+        debug!("Getting fee estimates from {url}");
 
         let response = self
             .client
@@ -76,7 +76,7 @@ impl ApiClient {
     /// Get raw response as JSON value (for compatibility testing)
     pub async fn get_raw(&self, path: &str) -> Result<(StatusCode, Value)> {
         let url = format!("{}{}", self.base_url, path);
-        trace!("Getting raw response from {}", url);
+        trace!("Getting raw response from {url}");
 
         let response = self
             .client

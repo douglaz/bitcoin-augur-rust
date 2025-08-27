@@ -177,7 +177,7 @@ impl CompatibilityTests {
                         let msg = format!("{} differences found", differences.len());
                         results.add_warning(test_name, &msg);
                         for diff in &differences {
-                            debug!("  - {}", diff);
+                            debug!("  - {diff}");
                         }
                     }
                 }
@@ -355,7 +355,11 @@ impl TestResults {
             name: name.to_string(),
             message: message.to_string(),
         });
-        println!("{} {}: {}", "✓".green(), name, message.dimmed());
+        println!(
+            "{} {name}: {message}",
+            "✓".green(),
+            message = message.dimmed()
+        );
     }
 
     pub fn add_fail(&mut self, name: &str, message: &str) {
@@ -363,7 +367,7 @@ impl TestResults {
             name: name.to_string(),
             message: message.to_string(),
         });
-        println!("{} {}: {}", "✗".red(), name, message.red());
+        println!("{} {name}: {message}", "✗".red(), message = message.red());
     }
 
     pub fn add_warning(&mut self, name: &str, message: &str) {
@@ -371,7 +375,11 @@ impl TestResults {
             name: name.to_string(),
             message: message.to_string(),
         });
-        println!("{} {}: {}", "⚠".yellow(), name, message.yellow());
+        println!(
+            "{} {name}: {message}",
+            "⚠".yellow(),
+            message = message.yellow()
+        );
     }
 
     pub fn print_summary(&self) {
@@ -409,7 +417,12 @@ impl TestResults {
         if !self.failed.is_empty() {
             println!("\nFailed tests:");
             for test in &self.failed {
-                println!("  {} - {}: {}", "✗".red(), test.name, test.message);
+                println!(
+                    "  {} - {name}: {message}",
+                    "✗".red(),
+                    name = test.name,
+                    message = test.message
+                );
             }
         }
     }

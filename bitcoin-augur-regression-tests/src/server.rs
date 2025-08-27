@@ -31,7 +31,10 @@ impl ServerManager {
             return Err(anyhow!("Server is already running"));
         }
 
-        info!("Starting bitcoin-augur-server on port {}", self.port);
+        info!(
+            "Starting bitcoin-augur-server on port {port}",
+            port = self.port
+        );
 
         // Create config for test server
         let config_path = self.data_dir.join("test-config.yaml");
@@ -50,9 +53,12 @@ impl ServerManager {
             .stderr(Stdio::piped())
             .kill_on_drop(true);
 
-        let child = cmd
-            .spawn()
-            .with_context(|| format!("Failed to start server from {:?}", self.binary_path))?;
+        let child = cmd.spawn().with_context(|| {
+            format!(
+                "Failed to start server from {path:?}",
+                path = self.binary_path
+            )
+        })?;
 
         self.process = Some(child);
 
@@ -80,17 +86,17 @@ impl ServerManager {
     #[allow(dead_code)]
     pub async fn is_running(&self) -> bool {
         // Try to connect to the health endpoint
-        let url = format!("http://127.0.0.1:{}/health", self.port);
+        let url = format!("http://127.0.0.1:{port}/health", port = self.port);
         reqwest::get(&url).await.is_ok()
     }
 
     /// Wait for server to be ready
     async fn wait_for_ready(&self) -> Result<()> {
-        let url = format!("http://127.0.0.1:{}/health", self.port);
+        let url = format!("http://127.0.0.1:{port}/health", port = self.port);
         let max_wait = Duration::from_secs(30);
         let check_interval = Duration::from_millis(500);
 
-        info!("Waiting for server to be ready at {}", url);
+        info!("Waiting for server to be ready at {url}");
 
         let start = std::time::Instant::now();
         loop {
@@ -144,7 +150,7 @@ logging:
 
     /// Get the server URL
     pub fn url(&self) -> String {
-        format!("http://127.0.0.1:{}", self.port)
+        format!("http://127.0.0.1:{port}", port = self.port)
     }
 }
 
@@ -182,7 +188,7 @@ impl ReferenceServerManager {
             return Err(anyhow!("Reference server is already running"));
         }
 
-        info!("Starting reference server on port {}", self.port);
+        info!("Starting reference server on port {port}", port = self.port);
 
         // Create config for reference server
         let config_path = self.data_dir.join("reference-config.yaml");
@@ -199,7 +205,10 @@ impl ReferenceServerManager {
             .kill_on_drop(true);
 
         let child = cmd.spawn().with_context(|| {
-            format!("Failed to start reference server from {:?}", self.jar_path)
+            format!(
+                "Failed to start reference server from {path:?}",
+                path = self.jar_path
+            )
         })?;
 
         self.process = Some(child);
@@ -222,11 +231,11 @@ impl ReferenceServerManager {
 
     /// Wait for server to be ready
     async fn wait_for_ready(&self) -> Result<()> {
-        let url = format!("http://127.0.0.1:{}/fees", self.port);
+        let url = format!("http://127.0.0.1:{port}/fees", port = self.port);
         let max_wait = Duration::from_secs(60); // Java server may take longer
         let check_interval = Duration::from_secs(1);
 
-        info!("Waiting for reference server to be ready at {}", url);
+        info!("Waiting for reference server to be ready at {url}");
 
         let start = std::time::Instant::now();
         loop {
@@ -286,7 +295,7 @@ logging:
 
     /// Get the server URL
     pub fn url(&self) -> String {
-        format!("http://127.0.0.1:{}", self.port)
+        format!("http://127.0.0.1:{port}", port = self.port)
     }
 }
 

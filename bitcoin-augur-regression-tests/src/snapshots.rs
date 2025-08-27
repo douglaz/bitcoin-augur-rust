@@ -62,13 +62,13 @@ impl SnapshotTester {
                 results.add_pass(test_name);
             }
             Err(e) => {
-                results.add_fail(test_name, &format!("Failed to get response: {}", e));
+                results.add_fail(test_name, &format!("Failed to get response: {e}"));
             }
         }
 
         // Test specific block targets
         for target in [1.0, 3.0, 6.0, 12.0, 24.0, 144.0] {
-            let test_name = format!("fee_estimates_target_{}", target);
+            let test_name = format!("fee_estimates_target_{target}");
 
             match runtime.block_on(client.get_fees_for_target(target)) {
                 Ok(response) => {
@@ -82,7 +82,7 @@ impl SnapshotTester {
                     results.add_pass(&test_name);
                 }
                 Err(e) => {
-                    results.add_fail(&test_name, &format!("Failed: {}", e));
+                    results.add_fail(&test_name, &format!("Failed: {e}"));
                 }
             }
         }
@@ -233,7 +233,7 @@ impl SnapshotTestResults {
 
     pub fn add_pass(&mut self, name: &str) {
         self.passed.push(name.to_string());
-        debug!("Snapshot test passed: {}", name);
+        debug!("Snapshot test passed: {name}");
     }
 
     pub fn add_fail(&mut self, name: &str, reason: &str) {

@@ -135,6 +135,7 @@ async fn main() -> Result<()> {
         .with_target(cli.verbose)
         .with_thread_ids(cli.verbose)
         .with_line_number(cli.verbose)
+        .with_writer(std::io::stderr) // Send tracing to stderr
         .init();
 
     // Create test runner
