@@ -1,11 +1,5 @@
 # cargo-deny configuration for bitcoin-augur
 
-[graph]
-# All features on crates.io is equivalent to:
-# * `--no-default-features --features foo` for each feature `foo` defined for a crate on crates.io
-# * `--all-features` if no features are defined for a crate on crates.io
-all-features = true
-
 [licenses]
 # Confidence threshold for detecting license files
 confidence-threshold = 0.9
