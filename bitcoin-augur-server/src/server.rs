@@ -47,7 +47,7 @@ pub async fn run_server(app: Router, host: String, port: u16) -> Result<(), std:
     let addr = format!("{}:{}", host, port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
 
-    info!("HTTP server listening on http://{}", addr);
+    info!("HTTP server listening on http://{addr}");
     info!("API endpoints:");
     info!("  GET /fees - Current fee estimates");
     info!("  GET /fees/target/{{num_blocks}} - Fee estimates for specific target");
@@ -87,7 +87,7 @@ mod tests {
             password: "test".to_string(),
         };
 
-        let bitcoin_client = BitcoinRpcClient::new(config);
+        let bitcoin_client = crate::bitcoin::BitcoinClient::Real(BitcoinRpcClient::new(config));
         let snapshot_store = SnapshotStore::new(temp_dir.path()).unwrap();
         let fee_estimator = FeeEstimator::new();
 

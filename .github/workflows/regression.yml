@@ -1,0 +1,146 @@
+name: Regression Tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  schedule:
+    - cron: '0 4 * * *' # Daily at 4 AM UTC
+  workflow_dispatch:
+
+jobs:
+  regression-tests:
+    name: Run Regression Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+        
+      - name: Cache Nix store
+        uses: actions/cache@v4
+        with:
+          path: /nix/store
+          key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nix-
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-regression-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-target-regression-
+            ${{ runner.os }}-target-
+
+      - name: Build server and regression tests with Nix
+        run: |
+          nix develop -c cargo build --release -p bitcoin-augur-server
+          nix develop -c cargo build --release -p bitcoin-augur-regression-tests
+
+      - name: Run test vector validation
+        run: |
+          nix develop -c ./target/release/bitcoin-augur-regression-tests vectors
+      
+      - name: Run snapshot tests
+        run: |
+          nix develop -c ./target/release/bitcoin-augur-regression-tests \
+            --server-path ./target/release/bitcoin-augur-server \
+            snapshots
+      
+      - name: Run compatibility tests  
+        run: |
+          nix develop -c ./target/release/bitcoin-augur-regression-tests \
+            --server-path ./target/release/bitcoin-augur-server \
+            compatibility
+
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-test-artifacts
+          path: |
+            test-data/
+            bitcoin-augur-regression-tests/snapshots/
+            
+  cross-implementation:
+    name: Cross-Implementation Compatibility
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cache Nix store
+        uses: actions/cache@v4
+        with:
+          path: /nix/store
+          key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-nix-
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-cross-impl-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-target-cross-impl-
+            ${{ runner.os }}-target-
+
+      - name: Build Rust server with Nix
+        run: |
+          nix develop -c cargo build --release -p bitcoin-augur-server
+          nix develop -c cargo build --release -p bitcoin-augur-regression-tests
+
+      - name: Build reference implementation
+        run: |
+          cd ../bitcoin-augur-reference || echo "Reference implementation not available"
+          if [ -f gradlew ]; then
+            ./gradlew build
+            echo "REFERENCE_JAR=$(find build -name '*.jar' | head -1)" >> $GITHUB_ENV
+          fi
+
+      - name: Run cross-implementation tests
+        if: env.REFERENCE_JAR != ''
+        run: |
+          nix develop -c ./target/release/bitcoin-augur-regression-tests compatibility \
+            --server-path ./target/release/bitcoin-augur-server \
+            --reference-jar $REFERENCE_JAR \
+            --with-reference
+
+      - name: Compare API responses
+        if: env.REFERENCE_JAR != ''
+        run: |
+          # Start Rust server with Nix
+          nix develop -c ./target/release/bitcoin-augur-server &
+          RUST_PID=$!
+          
+          if [ -f "$REFERENCE_JAR" ]; then
+            java -jar $REFERENCE_JAR &
+            JAVA_PID=$!
+            
+            sleep 10
+            
+            # Compare responses with Nix
+            nix develop -c ./target/release/bitcoin-augur-regression-tests compare \
+              http://localhost:8080 \
+              http://localhost:8090 \
+              /fees
+              
+            kill $JAVA_PID || true
+          fi
+          
+          kill $RUST_PID || true

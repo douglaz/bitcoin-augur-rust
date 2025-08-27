@@ -34,7 +34,10 @@ impl SnapshotStore {
         // Ensure the data directory exists
         fs::create_dir_all(&data_dir)?;
 
-        info!("Initialized snapshot store at: {}", data_dir.display());
+        info!(
+            "Initialized snapshot store at: {path}",
+            path = data_dir.display()
+        );
 
         Ok(Self { data_dir })
     }
@@ -58,7 +61,7 @@ impl SnapshotStore {
         let json = serde_json::to_string_pretty(snapshot)?;
         fs::write(&file_path, json)?;
 
-        debug!("Saved snapshot to: {}", file_path.display());
+        debug!("Saved snapshot to: {path}", path = file_path.display());
 
         Ok(())
     }
@@ -185,7 +188,7 @@ impl SnapshotStore {
                             // Delete old directory
                             fs::remove_dir_all(&path)?;
                             deleted_count += 1;
-                            info!("Deleted old snapshot directory: {}", dir_name);
+                            info!("Deleted old snapshot directory: {dir_name}");
                         }
                     }
                 }

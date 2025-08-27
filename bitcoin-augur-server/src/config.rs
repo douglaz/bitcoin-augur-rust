@@ -9,6 +9,7 @@ pub struct AppConfig {
     pub bitcoin_rpc: BitcoinRpcConfig,
     pub persistence: PersistenceConfig,
     pub collector: CollectorConfig,
+    pub test_mode: TestModeConfig,
 }
 
 /// HTTP server configuration
@@ -81,6 +82,17 @@ impl Default for CollectorConfig {
     }
 }
 
+/// Test mode configuration
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+pub struct TestModeConfig {
+    /// Enable test mode (bypasses Bitcoin RPC)
+    #[serde(default)]
+    pub enabled: bool,
+    /// Use mock data instead of real Bitcoin data
+    #[serde(default)]
+    pub use_mock_data: bool,
+}
+
 impl AppConfig {
     /// Load configuration from file and environment variables
     pub fn load() -> Result<Self, ConfigError> {
@@ -93,7 +105,9 @@ impl AppConfig {
             .set_default("bitcoin_rpc.password", "")?
             .set_default("persistence.data_directory", "mempool_data")?
             .set_default("persistence.cleanup_days", 30)?
-            .set_default("collector.interval_ms", 30000)?;
+            .set_default("collector.interval_ms", 30000)?
+            .set_default("test_mode.enabled", false)?
+            .set_default("test_mode.use_mock_data", false)?;
 
         // Load from config file if specified via environment variable
         if let Ok(config_file) = std::env::var("AUGUR_CONFIG_FILE") {
@@ -122,6 +136,20 @@ impl AppConfig {
         }
         if let Ok(url) = std::env::var("BITCOIN_RPC_URL") {
             builder = builder.set_override("bitcoin_rpc.url", url)?;
+        }
+
+        // Support test mode environment variables
+        if let Ok(enabled) = std::env::var("AUGUR_TEST_MODE_ENABLED") {
+            builder = builder.set_override(
+                "test_mode.enabled",
+                enabled.parse::<bool>().unwrap_or(false),
+            )?;
+        }
+        if let Ok(use_mock) = std::env::var("AUGUR_TEST_MODE_USE_MOCK_DATA") {
+            builder = builder.set_override(
+                "test_mode.use_mock_data",
+                use_mock.parse::<bool>().unwrap_or(false),
+            )?;
         }
 
         builder.build()?.try_deserialize()

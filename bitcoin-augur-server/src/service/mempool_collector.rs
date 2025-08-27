@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 use tokio::time::{interval, Duration};
 use tracing::{debug, error, info, warn};
 
-use crate::bitcoin::{BitcoinRpcClient, RpcError};
+use crate::bitcoin::{BitcoinClient, BitcoinRpc, RpcError};
 use crate::persistence::{PersistenceError, SnapshotStore};
 
 /// Mempool collector errors
@@ -28,7 +28,7 @@ pub enum CollectorError {
 
 /// Service that periodically collects mempool data and calculates fee estimates
 pub struct MempoolCollector {
-    bitcoin_client: Arc<BitcoinRpcClient>,
+    bitcoin_client: Arc<BitcoinClient>,
     snapshot_store: Arc<SnapshotStore>,
     fee_estimator: Arc<FeeEstimator>,
     latest_estimate: Arc<RwLock<Option<FeeEstimate>>>,
@@ -38,7 +38,7 @@ pub struct MempoolCollector {
 impl MempoolCollector {
     /// Creates a new mempool collector
     pub fn new(
-        bitcoin_client: BitcoinRpcClient,
+        bitcoin_client: BitcoinClient,
         snapshot_store: SnapshotStore,
         fee_estimator: FeeEstimator,
     ) -> Self {
@@ -55,18 +55,18 @@ impl MempoolCollector {
     pub async fn start(&self, interval_ms: u64) -> Result<(), CollectorError> {
         let mut interval = interval(Duration::from_millis(interval_ms));
 
-        info!("Starting mempool collector with {}ms interval", interval_ms);
+        info!("Starting mempool collector with {interval_ms}ms interval");
 
         // Perform initial collection immediately
         if let Err(e) = self.update_fee_estimates().await {
-            warn!("Initial fee estimate update failed: {}", e);
+            warn!("Initial fee estimate update failed: {e}");
         }
 
         loop {
             interval.tick().await;
 
             if let Err(e) = self.update_fee_estimates().await {
-                error!("Failed to update fee estimates: {}", e);
+                error!("Failed to update fee estimates: {e}");
                 // Continue running despite errors
             }
         }
@@ -108,7 +108,7 @@ impl MempoolCollector {
                     *latest = Some(estimate);
                 }
                 Err(e) => {
-                    warn!("Failed to calculate fee estimates: {}", e);
+                    warn!("Failed to calculate fee estimates: {e}");
                 }
             }
         } else {
@@ -156,7 +156,7 @@ impl MempoolCollector {
                     }
                 }
                 Err(e) => {
-                    warn!("Failed to calculate initial fee estimates: {}", e);
+                    warn!("Failed to calculate initial fee estimates: {e}");
                     return Err(CollectorError::EstimationError(e));
                 }
             }
@@ -219,9 +219,9 @@ impl MempoolCollector {
 
     /// Performs cleanup of old snapshots
     pub async fn cleanup_old_snapshots(&self, days_to_keep: i64) -> Result<usize, CollectorError> {
-        info!("Cleaning up snapshots older than {} days", days_to_keep);
+        info!("Cleaning up snapshots older than {days_to_keep} days");
         let deleted = self.snapshot_store.cleanup_old_snapshots(days_to_keep)?;
-        info!("Deleted {} old snapshot directories", deleted);
+        info!("Deleted {deleted} old snapshot directories");
         Ok(deleted)
     }
 

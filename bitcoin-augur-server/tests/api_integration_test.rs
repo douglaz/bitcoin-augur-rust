@@ -1,6 +1,6 @@
 use axum::http::StatusCode;
 use bitcoin_augur::{FeeEstimator, MempoolSnapshot};
-use bitcoin_augur_server::bitcoin::{BitcoinRpcClient, BitcoinRpcConfig};
+use bitcoin_augur_server::bitcoin::{BitcoinClient, BitcoinRpcClient, BitcoinRpcConfig};
 use bitcoin_augur_server::persistence::SnapshotStore;
 use bitcoin_augur_server::server::create_app;
 use bitcoin_augur_server::service::MempoolCollector;
@@ -20,7 +20,7 @@ async fn create_test_app() -> anyhow::Result<(axum::Router, TempDir)> {
         password: "test".to_string(),
     };
 
-    let bitcoin_client = BitcoinRpcClient::new(config);
+    let bitcoin_client = BitcoinClient::Real(BitcoinRpcClient::new(config));
     let snapshot_store = SnapshotStore::new(temp_dir.path())?;
     let fee_estimator = FeeEstimator::new();
 

@@ -41,7 +41,7 @@ pub async fn get_fee_for_target(
 ) -> Response {
     // Validate num_blocks parameter
     if num_blocks <= 0.0 || num_blocks > 1000.0 || !num_blocks.is_finite() {
-        warn!("Invalid num_blocks parameter: {}", num_blocks);
+        warn!("Invalid num_blocks parameter: {num_blocks}");
         return (
             StatusCode::BAD_REQUEST,
             "Invalid or missing number of blocks",
@@ -65,7 +65,7 @@ pub async fn get_fee_for_target(
             Json(response).into_response()
         }
         Err(err) => {
-            warn!("Failed to calculate fee estimates: {}", err);
+            warn!("Failed to calculate fee estimates: {err}");
 
             // Check if it's a data availability issue
             if err.to_string().contains("Insufficient") {

@@ -129,7 +129,10 @@ impl BitcoinRpcClient {
             .await?;
 
         if !response.status().is_success() {
-            error!("RPC request failed with status: {}", response.status());
+            error!(
+                "RPC request failed with status: {status}",
+                status = response.status()
+            );
             return Err(RpcError::InvalidResponse);
         }
 
@@ -156,7 +159,10 @@ impl BitcoinRpcClient {
                 .clone(),
         )?;
 
-        debug!("Current blockchain height: {}", blockchain_info.blocks);
+        debug!(
+            "Current blockchain height: {height}",
+            height = blockchain_info.blocks
+        );
 
         // Parse mempool transactions
         let mempool_result = &results[1];
@@ -193,7 +199,10 @@ impl BitcoinRpcClient {
             }
         }
 
-        info!("Fetched {} mempool transactions", transactions.len());
+        info!(
+            "Fetched {count} mempool transactions",
+            count = transactions.len()
+        );
 
         Ok((blockchain_info.blocks, transactions))
     }
@@ -219,7 +228,10 @@ impl BitcoinRpcClient {
             .await?;
 
         if !response.status().is_success() {
-            error!("Connection test failed with status: {}", response.status());
+            error!(
+                "Connection test failed with status: {status}",
+                status = response.status()
+            );
             return Err(RpcError::InvalidResponse);
         }
 

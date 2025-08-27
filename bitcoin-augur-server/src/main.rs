@@ -15,7 +15,7 @@ use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::{
-    bitcoin::BitcoinRpcClient,
+    bitcoin::{BitcoinClient, BitcoinRpcClient, MockBitcoinClient},
     config::AppConfig,
     persistence::SnapshotStore,
     server::{create_app, run_server},
@@ -64,23 +64,41 @@ async fn main() -> Result<()> {
     let config = AppConfig::load().context("Failed to load configuration")?;
 
     info!("Configuration loaded:");
-    info!("  Server: {}:{}", config.server.host, config.server.port);
-    info!("  Bitcoin RPC: {}", config.bitcoin_rpc.url);
-    info!("  Data directory: {}", config.persistence.data_directory);
-    info!("  Collection interval: {}ms", config.collector.interval_ms);
+    info!(
+        "  Server: {host}:{port}",
+        host = config.server.host,
+        port = config.server.port
+    );
+    info!("  Bitcoin RPC: {url}", url = config.bitcoin_rpc.url);
+    info!(
+        "  Data directory: {dir}",
+        dir = config.persistence.data_directory
+    );
+    info!(
+        "  Collection interval: {interval}ms",
+        interval = config.collector.interval_ms
+    );
+    info!("  Test mode: {enabled}", enabled = config.test_mode.enabled);
 
-    // Initialize Bitcoin RPC client
-    let bitcoin_client = BitcoinRpcClient::new(config.to_bitcoin_rpc_config());
+    // Initialize Bitcoin RPC client (use mock if in test mode)
+    let bitcoin_client = if config.test_mode.enabled {
+        info!("Running in test mode - using mock Bitcoin client");
+        BitcoinClient::Mock(MockBitcoinClient::new())
+    } else {
+        let client = BitcoinRpcClient::new(config.to_bitcoin_rpc_config());
 
-    // Test Bitcoin connection
-    match bitcoin_client.test_connection().await {
-        Ok(_) => info!("Successfully connected to Bitcoin Core"),
-        Err(e) => {
-            error!("Failed to connect to Bitcoin Core: {}", e);
-            error!("Please ensure Bitcoin Core is running and RPC credentials are correct");
-            // Continue anyway - the collector will retry
+        // Test Bitcoin connection
+        match client.test_connection().await {
+            Ok(_) => info!("Successfully connected to Bitcoin Core"),
+            Err(e) => {
+                error!("Failed to connect to Bitcoin Core: {e}");
+                error!("Please ensure Bitcoin Core is running and RPC credentials are correct");
+                // Continue anyway - the collector will retry
+            }
         }
-    }
+
+        BitcoinClient::Real(client)
+    };
 
     // Initialize persistence store
     let snapshot_store = SnapshotStore::new(&config.persistence.data_directory)
@@ -109,9 +127,9 @@ async fn main() -> Result<()> {
     let collector_handle = collector.clone();
     let interval_ms = config.collector.interval_ms;
     tokio::spawn(async move {
-        info!("Starting mempool collector with {}ms interval", interval_ms);
+        info!("Starting mempool collector with {interval_ms}ms interval");
         if let Err(e) = collector_handle.start(interval_ms).await {
-            error!("Mempool collector error: {}", e);
+            error!("Mempool collector error: {e}");
         }
     });
 
@@ -127,8 +145,8 @@ async fn main() -> Result<()> {
                 cleanup_days
             );
             match collector_cleanup.cleanup_old_snapshots(cleanup_days).await {
-                Ok(deleted) => info!("Cleaned up {} old snapshot directories", deleted),
-                Err(e) => error!("Cleanup failed: {}", e),
+                Ok(deleted) => info!("Cleaned up {deleted} old snapshot directories"),
+                Err(e) => error!("Cleanup failed: {e}"),
             }
         }
     });
