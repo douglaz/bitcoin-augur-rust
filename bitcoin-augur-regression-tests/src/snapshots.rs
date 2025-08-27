@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use anyhow::{Context, Result};
 use insta::{assert_json_snapshot, Settings};
 use serde_json::Value;
@@ -18,20 +20,18 @@ impl SnapshotTester {
     /// Run snapshot tests
     pub async fn run_tests(&self, api_url: &str) -> Result<SnapshotTestResults> {
         let mut results = SnapshotTestResults::new();
-        
+
         // Configure insta settings
         let mut settings = Settings::clone_current();
         settings.set_snapshot_path("snapshots");
-        
+
         if self.update_snapshots {
             // Note: insta doesn't have set_update_snapshots method in this version
             // Will rely on INSTA_UPDATE environment variable instead
         }
-        
-        settings.bind(|| {
-            self.run_snapshot_tests_inner(api_url, &mut results)
-        })?;
-        
+
+        settings.bind(|| self.run_snapshot_tests_inner(api_url, &mut results))?;
+
         results.print_summary();
         Ok(results)
     }
@@ -43,42 +43,42 @@ impl SnapshotTester {
         results: &mut SnapshotTestResults,
     ) -> Result<()> {
         let client = crate::api_client::ApiClient::new(api_url.to_string());
-        
+
         // Test fee estimates snapshot
         info!("Testing fee estimates snapshot");
         let runtime = tokio::runtime::Runtime::new()?;
-        
+
         let test_name = "fee_estimates";
         match runtime.block_on(client.get_fees()) {
             Ok(response) => {
                 // Redact timestamp for consistent snapshots
                 let mut value = serde_json::to_value(&response)?;
                 Self::redact_timestamps(&mut value);
-                
+
                 assert_json_snapshot!(test_name, value, {
                     ".mempool_update_time" => "[timestamp]"
                 });
-                
+
                 results.add_pass(test_name);
             }
             Err(e) => {
                 results.add_fail(test_name, &format!("Failed to get response: {}", e));
             }
         }
-        
+
         // Test specific block targets
         for target in [1.0, 3.0, 6.0, 12.0, 24.0, 144.0] {
             let test_name = format!("fee_estimates_target_{}", target);
-            
+
             match runtime.block_on(client.get_fees_for_target(target)) {
                 Ok(response) => {
                     let mut value = serde_json::to_value(&response)?;
                     Self::redact_timestamps(&mut value);
-                    
+
                     assert_json_snapshot!(test_name.as_str(), value, {
                         ".mempool_update_time" => "[timestamp]"
                     });
-                    
+
                     results.add_pass(&test_name);
                 }
                 Err(e) => {
@@ -86,7 +86,7 @@ impl SnapshotTester {
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -117,11 +117,11 @@ impl SnapshotTester {
         snapshot_dir2: &Path,
     ) -> Result<Vec<SnapshotDifference>> {
         let mut differences = Vec::new();
-        
+
         // Read all snapshots from both directories
         let snapshots1 = Self::read_snapshot_dir(snapshot_dir1)?;
         let snapshots2 = Self::read_snapshot_dir(snapshot_dir2)?;
-        
+
         // Compare each snapshot
         for (name, content1) in &snapshots1 {
             if let Some(content2) = snapshots2.get(name) {
@@ -140,7 +140,7 @@ impl SnapshotTester {
                 });
             }
         }
-        
+
         // Check for new snapshots in second
         for name in snapshots2.keys() {
             if !snapshots1.contains_key(name) {
@@ -151,24 +151,24 @@ impl SnapshotTester {
                 });
             }
         }
-        
+
         Ok(differences)
     }
 
     /// Read all snapshots from directory
     fn read_snapshot_dir(dir: &Path) -> Result<std::collections::HashMap<String, Value>> {
         use std::collections::HashMap;
-        
+
         let mut snapshots = HashMap::new();
-        
+
         if !dir.exists() {
             return Ok(snapshots);
         }
-        
+
         for entry in std::fs::read_dir(dir)? {
             let entry = entry?;
             let path = entry.path();
-            
+
             if path.extension().and_then(|s| s.to_str()) == Some("snap") {
                 let content = std::fs::read_to_string(&path)?;
                 let name = path
@@ -176,14 +176,14 @@ impl SnapshotTester {
                     .and_then(|s| s.to_str())
                     .unwrap_or("unknown")
                     .to_string();
-                
+
                 // Parse the snapshot content (insta format includes metadata)
                 if let Ok(value) = Self::parse_snapshot_content(&content) {
                     snapshots.insert(name, value);
                 }
             }
         }
-        
+
         Ok(snapshots)
     }
 
@@ -191,7 +191,7 @@ impl SnapshotTester {
     fn parse_snapshot_content(content: &str) -> Result<Value> {
         // Insta snapshots have a specific format with metadata
         // We need to extract the actual JSON content
-        
+
         // Find the start of the JSON content (after the metadata)
         if let Some(json_start) = content.find("---\n") {
             let json_part = &content[json_start + 4..];
@@ -205,10 +205,14 @@ impl SnapshotTester {
     /// Get difference between two JSON values
     fn get_json_diff(val1: &Value, val2: &Value) -> String {
         use assert_json_diff::assert_json_matches_no_panic;
-        
-        match assert_json_matches_no_panic(val1, val2, assert_json_diff::Config::new(assert_json_diff::CompareMode::Strict)) {
+
+        match assert_json_matches_no_panic(
+            val1,
+            val2,
+            assert_json_diff::Config::new(assert_json_diff::CompareMode::Strict),
+        ) {
             Ok(_) => "Values are identical".to_string(),
-            Err(e) => format!("{}", e),
+            Err(e) => e.to_string(),
         }
     }
 }
@@ -239,23 +243,23 @@ impl SnapshotTestResults {
 
     pub fn print_summary(&self) {
         use colored::Colorize;
-        
+
         println!("\n{}", "Snapshot Test Results".bold());
         println!("{}", "=".repeat(50));
-        
+
         println!(
             "Passed: {} {}",
             self.passed.len().to_string().green(),
             "✓".green()
         );
-        
+
         if !self.failed.is_empty() {
             println!(
                 "Failed: {} {}",
                 self.failed.len().to_string().red(),
                 "✗".red()
             );
-            
+
             println!("\nFailed tests:");
             for (name, reason) in &self.failed {
                 println!("  {} {}: {}", "✗".red(), name, reason.dimmed());

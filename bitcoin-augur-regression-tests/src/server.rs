@@ -4,7 +4,7 @@ use std::process::Stdio;
 use std::time::Duration;
 use tokio::process::{Child, Command};
 use tokio::time::{sleep, timeout};
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 /// Manages a bitcoin-augur-server process for testing
 pub struct ServerManager {
@@ -41,7 +41,10 @@ impl ServerManager {
         let mut cmd = Command::new(&self.binary_path);
         cmd.env("AUGUR_SERVER__CONFIG", &config_path)
             .env("AUGUR_SERVER__PORT", self.port.to_string())
-            .env("AUGUR_SERVER__MEMPOOL_DATA_PATH", self.data_dir.join("mempool"))
+            .env(
+                "AUGUR_SERVER__MEMPOOL_DATA_PATH",
+                self.data_dir.join("mempool"),
+            )
             .env("RUST_LOG", "info")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -63,10 +66,10 @@ impl ServerManager {
     pub async fn stop(&mut self) -> Result<()> {
         if let Some(mut process) = self.process.take() {
             info!("Stopping bitcoin-augur-server");
-            
+
             // Try graceful shutdown first
             process.kill().await.ok();
-            
+
             // Wait a bit for process to terminate
             sleep(Duration::from_millis(500)).await;
         }
@@ -74,6 +77,7 @@ impl ServerManager {
     }
 
     /// Check if server is running
+    #[allow(dead_code)]
     pub async fn is_running(&self) -> bool {
         // Try to connect to the health endpoint
         let url = format!("http://127.0.0.1:{}/health", self.port);
@@ -194,9 +198,9 @@ impl ReferenceServerManager {
             .stderr(Stdio::piped())
             .kill_on_drop(true);
 
-        let child = cmd
-            .spawn()
-            .with_context(|| format!("Failed to start reference server from {:?}", self.jar_path))?;
+        let child = cmd.spawn().with_context(|| {
+            format!("Failed to start reference server from {:?}", self.jar_path)
+        })?;
 
         self.process = Some(child);
 
@@ -227,7 +231,10 @@ impl ReferenceServerManager {
         let start = std::time::Instant::now();
         loop {
             if start.elapsed() > max_wait {
-                return Err(anyhow!("Reference server failed to start within {:?}", max_wait));
+                return Err(anyhow!(
+                    "Reference server failed to start within {:?}",
+                    max_wait
+                ));
             }
 
             match timeout(Duration::from_secs(2), reqwest::get(&url)).await {
@@ -242,7 +249,7 @@ impl ReferenceServerManager {
                     debug!("Reference server not ready yet, retrying...");
                 }
             }
-            
+
             sleep(check_interval).await;
         }
     }

@@ -1,18 +1,18 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use colored::Colorize;
 use futures::future::join_all;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 use tracing::{error, info, warn};
 
 use crate::{
     api_client::ApiClient,
-    compatibility::{CompatibilityTests, TestResults as CompatTestResults},
+    compatibility::CompatibilityTests,
     server::{ReferenceServerManager, ServerManager},
     snapshots::SnapshotTester,
-    test_cases::{TestCase, TestCaseGenerator},
-    test_vectors::{TestVector, TestVectorRunner},
+    test_cases::TestCaseGenerator,
+    test_vectors::TestVectorRunner,
 };
 
 /// Main test runner
@@ -100,7 +100,7 @@ impl TestRunner {
         run_vectors: bool,
     ) -> Result<()> {
         info!("Starting regression test suite");
-        
+
         let mut all_passed = true;
 
         // Start server if available
@@ -262,7 +262,7 @@ impl TestRunner {
         }
 
         let results = join_all(tasks).await;
-        
+
         let mut all_passed = true;
         for result in results {
             match result {
@@ -312,9 +312,13 @@ impl TestRunner {
 
         println!(
             "\n{}",
-            format!("Generated {} test cases and {} test vectors", count, vectors.len())
-                .green()
-                .bold()
+            format!(
+                "Generated {} test cases and {} test vectors",
+                count,
+                vectors.len()
+            )
+            .green()
+            .bold()
         );
 
         Ok(())
@@ -397,12 +401,10 @@ impl Drop for TestRunner {
     fn drop(&mut self) {
         // Ensure servers are stopped
         if let Some(mut manager) = self.server_manager.take() {
-            let _ = tokio::runtime::Runtime::new()
-                .and_then(|rt| Ok(rt.block_on(manager.stop())));
+            let _ = tokio::runtime::Runtime::new().map(|rt| rt.block_on(manager.stop()));
         }
         if let Some(mut manager) = self.reference_manager.take() {
-            let _ = tokio::runtime::Runtime::new()
-                .and_then(|rt| Ok(rt.block_on(manager.stop())));
+            let _ = tokio::runtime::Runtime::new().map(|rt| rt.block_on(manager.stop()));
         }
     }
 }

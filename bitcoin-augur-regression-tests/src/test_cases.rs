@@ -1,10 +1,5 @@
-use anyhow::Result;
-use bitcoin_augur::{MempoolSnapshot, MempoolTransaction};
-use chrono::Utc;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use tracing::info;
 
 /// Test case for regression testing
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -47,7 +42,7 @@ impl TestCaseGenerator {
     pub fn generate(count: usize) -> Vec<TestCase> {
         let mut cases = Vec::new();
         let mut rng = rand::thread_rng();
-        
+
         // Generate various test scenarios
         for i in 0..count {
             let case = match i % 10 {
@@ -64,7 +59,7 @@ impl TestCaseGenerator {
             };
             cases.push(case);
         }
-        
+
         cases
     }
 
@@ -107,14 +102,12 @@ impl TestCaseGenerator {
                 }],
                 block_height: 850001,
             },
-            api_calls: vec![
-                ApiCall {
-                    method: "GET".to_string(),
-                    path: "/fees".to_string(),
-                    expected_status: 200,
-                    validate_response: true,
-                },
-            ],
+            api_calls: vec![ApiCall {
+                method: "GET".to_string(),
+                path: "/fees".to_string(),
+                expected_status: 200,
+                validate_response: true,
+            }],
         }
     }
 
@@ -136,21 +129,19 @@ impl TestCaseGenerator {
                 transactions,
                 block_height: 850000 + rng.gen_range(0..1000),
             },
-            api_calls: vec![
-                ApiCall {
-                    method: "GET".to_string(),
-                    path: "/fees".to_string(),
-                    expected_status: 200,
-                    validate_response: true,
-                },
-            ],
+            api_calls: vec![ApiCall {
+                method: "GET".to_string(),
+                path: "/fees".to_string(),
+                expected_status: 200,
+                validate_response: true,
+            }],
         }
     }
 
     /// Generate bimodal distribution
     fn generate_bimodal_distribution(rng: &mut impl Rng) -> TestCase {
         let mut transactions = Vec::new();
-        
+
         // Low fee group
         for _ in 0..50 {
             let fee_rate = rng.gen_range(1..5);
@@ -160,7 +151,7 @@ impl TestCaseGenerator {
                 fee_rate: Some(fee_rate as f64),
             });
         }
-        
+
         // High fee group
         for _ in 0..50 {
             let fee_rate = rng.gen_range(50..100);
@@ -198,7 +189,7 @@ impl TestCaseGenerator {
     /// Generate high fee spike
     fn generate_high_fee_spike(rng: &mut impl Rng) -> TestCase {
         let mut transactions = Vec::new();
-        
+
         // Normal fees
         for _ in 0..90 {
             let fee_rate = rng.gen_range(1..10);
@@ -208,7 +199,7 @@ impl TestCaseGenerator {
                 fee_rate: Some(fee_rate as f64),
             });
         }
-        
+
         // Spike fees
         for _ in 0..10 {
             let fee_rate = rng.gen_range(200..500);
@@ -337,14 +328,12 @@ impl TestCaseGenerator {
                 transactions,
                 block_height: 850000 + rng.gen_range(0..1000),
             },
-            api_calls: vec![
-                ApiCall {
-                    method: "GET".to_string(),
-                    path: "/fees".to_string(),
-                    expected_status: 200,
-                    validate_response: true,
-                },
-            ],
+            api_calls: vec![ApiCall {
+                method: "GET".to_string(),
+                path: "/fees".to_string(),
+                expected_status: 200,
+                validate_response: true,
+            }],
         }
     }
 
@@ -396,7 +385,7 @@ impl TestCaseGenerator {
     /// Generate mixed weights
     fn generate_mixed_weights(rng: &mut impl Rng) -> TestCase {
         let mut transactions = Vec::new();
-        
+
         // Small transactions
         for _ in 0..30 {
             let weight = rng.gen_range(500..1500);
@@ -407,7 +396,7 @@ impl TestCaseGenerator {
                 fee_rate: Some(fee_rate),
             });
         }
-        
+
         // Medium transactions
         for _ in 0..40 {
             let weight = rng.gen_range(1500..4000);
@@ -418,7 +407,7 @@ impl TestCaseGenerator {
                 fee_rate: Some(fee_rate),
             });
         }
-        
+
         // Large transactions
         for _ in 0..30 {
             let weight = rng.gen_range(4000..10000);
@@ -437,14 +426,12 @@ impl TestCaseGenerator {
                 transactions,
                 block_height: 850000 + rng.gen_range(0..1000),
             },
-            api_calls: vec![
-                ApiCall {
-                    method: "GET".to_string(),
-                    path: "/fees".to_string(),
-                    expected_status: 200,
-                    validate_response: true,
-                },
-            ],
+            api_calls: vec![ApiCall {
+                method: "GET".to_string(),
+                path: "/fees".to_string(),
+                expected_status: 200,
+                validate_response: true,
+            }],
         }
     }
 }

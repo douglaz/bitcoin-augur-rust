@@ -1,9 +1,8 @@
 use crate::api_client::{ApiClient, ResponseComparator};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use colored::Colorize;
 use serde_json::Value;
-use std::collections::HashMap;
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
 
 /// API compatibility test suite
 pub struct CompatibilityTests {
@@ -50,10 +49,10 @@ impl CompatibilityTests {
         info!("Testing /fees endpoint");
 
         let test_name = "GET /fees";
-        
+
         // Test Rust implementation
         let rust_response = self.rust_client.get_fees().await;
-        
+
         match rust_response {
             Ok(resp) => {
                 // Validate response structure
@@ -79,7 +78,7 @@ impl CompatibilityTests {
 
         for target in test_targets {
             let test_name = format!("GET /fees/target/{}", target);
-            
+
             match self.rust_client.get_fees_for_target(target).await {
                 Ok(resp) => {
                     if self.validate_fee_response_structure(&resp) {
@@ -112,7 +111,7 @@ impl CompatibilityTests {
         for (test_case, value) in invalid_targets {
             let test_name = format!("Invalid target: {}", test_case);
             let path = format!("/fees/target/{}", value);
-            
+
             match self.rust_client.get_raw(&path).await {
                 Ok((status, _body)) => {
                     if status.as_u16() == 400 || status.as_u16() == 404 {
@@ -135,7 +134,7 @@ impl CompatibilityTests {
         info!("Testing response format compatibility");
 
         let test_name = "Response format validation";
-        
+
         match self.rust_client.get_raw("/fees").await {
             Ok((status, body)) => {
                 if status.as_u16() == 503 {
@@ -167,7 +166,10 @@ impl CompatibilityTests {
 
             // Test /fees endpoint
             let test_name = "Cross-impl: /fees";
-            match self.compare_endpoints(&self.rust_client, ref_client, "/fees").await {
+            match self
+                .compare_endpoints(&self.rust_client, ref_client, "/fees")
+                .await
+            {
                 Ok(differences) => {
                     if differences.is_empty() {
                         results.add_pass(test_name, "Responses match");
@@ -188,13 +190,19 @@ impl CompatibilityTests {
             for target in [3.0, 6.0, 12.0] {
                 let test_name = format!("Cross-impl: /fees/target/{}", target);
                 let path = format!("/fees/target/{}", target);
-                
-                match self.compare_endpoints(&self.rust_client, ref_client, &path).await {
+
+                match self
+                    .compare_endpoints(&self.rust_client, ref_client, &path)
+                    .await
+                {
                     Ok(differences) => {
                         if differences.is_empty() {
                             results.add_pass(&test_name, "Responses match");
                         } else {
-                            results.add_warning(&test_name, &format!("{} differences", differences.len()));
+                            results.add_warning(
+                                &test_name,
+                                &format!("{} differences", differences.len()),
+                            );
                         }
                     }
                     Err(e) => {
@@ -233,20 +241,23 @@ impl CompatibilityTests {
     }
 
     /// Validate fee response structure
-    fn validate_fee_response_structure(&self, resp: &crate::api_client::FeeEstimateResponse) -> bool {
+    fn validate_fee_response_structure(
+        &self,
+        resp: &crate::api_client::FeeEstimateResponse,
+    ) -> bool {
         // Check timestamp format
         if !resp.mempool_update_time.contains('T') {
             return false;
         }
 
         // If estimates exist, validate structure
-        for (_block_num, target) in &resp.estimates {
+        for target in resp.estimates.values() {
             for (prob_str, prob) in &target.probabilities {
                 // Validate probability format (e.g., "0.95")
                 if prob_str.parse::<f64>().is_err() {
                     return false;
                 }
-                
+
                 // Validate fee rate is positive
                 if prob.fee_rate < 0.0 {
                     return false;
@@ -365,17 +376,17 @@ impl TestResults {
 
     pub fn print_summary(&self) {
         let duration = self.start_time.elapsed();
-        
+
         println!("\n{}", "=".repeat(60));
         println!("Test Summary");
         println!("{}", "=".repeat(60));
-        
+
         println!(
             "Passed:   {} {}",
             self.passed.len().to_string().green(),
             "✓".green()
         );
-        
+
         if !self.warnings.is_empty() {
             println!(
                 "Warnings: {} {}",
@@ -383,7 +394,7 @@ impl TestResults {
                 "⚠".yellow()
             );
         }
-        
+
         if !self.failed.is_empty() {
             println!(
                 "Failed:   {} {}",
@@ -391,7 +402,7 @@ impl TestResults {
                 "✗".red()
             );
         }
-        
+
         println!("Duration: {:.2}s", duration.as_secs_f64());
         println!("{}", "=".repeat(60));
 
@@ -407,6 +418,7 @@ impl TestResults {
         self.failed.is_empty()
     }
 
+    #[allow(dead_code)]
     pub fn total_tests(&self) -> usize {
         self.passed.len() + self.failed.len() + self.warnings.len()
     }

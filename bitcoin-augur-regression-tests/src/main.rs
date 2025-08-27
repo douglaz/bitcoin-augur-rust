@@ -127,9 +127,9 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     // Initialize logging
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(&cli.log_level));
-    
+    let filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(&cli.log_level));
+
     tracing_subscriber::fmt()
         .with_env_filter(filter)
         .with_target(cli.verbose)
@@ -175,7 +175,9 @@ async fn main() -> Result<()> {
             endpoint2,
             path,
         } => {
-            runner.compare_endpoints(&endpoint1, &endpoint2, &path).await?;
+            runner
+                .compare_endpoints(&endpoint1, &endpoint2, &path)
+                .await?;
         }
     }
 

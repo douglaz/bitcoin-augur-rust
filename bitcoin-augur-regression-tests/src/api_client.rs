@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use reqwest::{Client, StatusCode};
@@ -49,7 +51,10 @@ impl ApiClient {
     /// Get fee estimates for specific block target
     pub async fn get_fees_for_target(&self, num_blocks: f64) -> Result<FeeEstimateResponse> {
         let url = format!("{}/fees/target/{}", self.base_url, num_blocks);
-        debug!("Getting fee estimates for {} blocks from {}", num_blocks, url);
+        debug!(
+            "Getting fee estimates for {} blocks from {}",
+            num_blocks, url
+        );
 
         let response = self
             .client
@@ -81,7 +86,7 @@ impl ApiClient {
             .context("Failed to send request")?;
 
         let status = response.status();
-        
+
         // Try to parse as JSON, fall back to string if not JSON
         let body = if status.is_success() || status == StatusCode::SERVICE_UNAVAILABLE {
             match response.json::<Value>().await {
@@ -246,7 +251,7 @@ impl ResponseComparator {
     ) {
         match (val1, val2) {
             (Value::Object(map1), Value::Object(map2)) => {
-                let all_keys: std::collections::HashSet<_> = 
+                let all_keys: std::collections::HashSet<_> =
                     map1.keys().chain(map2.keys()).collect();
 
                 for key in all_keys {
@@ -256,10 +261,12 @@ impl ResponseComparator {
                             Self::compare_json_recursive(v1, v2, &new_path, differences);
                         }
                         (Some(_), None) => {
-                            differences.push(format!("{}: present in first, missing in second", new_path));
+                            differences
+                                .push(format!("{}: present in first, missing in second", new_path));
                         }
                         (None, Some(_)) => {
-                            differences.push(format!("{}: missing in first, present in second", new_path));
+                            differences
+                                .push(format!("{}: missing in first, present in second", new_path));
                         }
                         _ => {}
                     }

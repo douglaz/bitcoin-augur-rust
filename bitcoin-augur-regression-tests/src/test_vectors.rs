@@ -1,10 +1,9 @@
 use anyhow::{Context, Result};
-use bitcoin_augur::{BlockTarget, FeeEstimate, MempoolSnapshot, MempoolTransaction, OrderedFloat};
+use bitcoin_augur::{MempoolSnapshot, MempoolTransaction};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 use std::path::Path;
-use tracing::{info, warn};
+use tracing::info;
 
 /// Test vector for fee estimation
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,7 +60,7 @@ impl TestVectorRunner {
         let content = tokio::fs::read_to_string(path)
             .await
             .with_context(|| format!("Failed to read test vectors from {:?}", path))?;
-        
+
         serde_json::from_str(&content)
             .with_context(|| format!("Failed to parse test vectors from {:?}", path))
     }
@@ -82,42 +81,38 @@ impl TestVectorRunner {
         TestVector {
             name: "simple_mempool".to_string(),
             description: "Basic mempool with uniform fee distribution".to_string(),
-            mempool_snapshots: vec![
-                MempoolSnapshotData {
-                    block_height: 850000,
-                    timestamp: "2025-01-20T12:00:00Z".to_string(),
-                    transactions: (1..=100)
-                        .map(|i| TransactionData {
-                            weight: 2000,
-                            fee: (i * 1000) as u64,
-                            fee_rate: Some(i as f64 * 2.0),
-                        })
-                        .collect(),
-                },
-            ],
+            mempool_snapshots: vec![MempoolSnapshotData {
+                block_height: 850000,
+                timestamp: "2025-01-20T12:00:00Z".to_string(),
+                transactions: (1..=100)
+                    .map(|i| TransactionData {
+                        weight: 2000,
+                        fee: (i * 1000) as u64,
+                        fee_rate: Some(i as f64 * 2.0),
+                    })
+                    .collect(),
+            }],
             expected_estimates: ExpectedEstimates {
-                block_targets: vec![
-                    ExpectedBlockTarget {
-                        blocks: 3,
-                        probabilities: vec![
-                            ExpectedProbability {
-                                probability: 0.05,
-                                fee_rate: 10.0,
-                                tolerance: Some(5.0),
-                            },
-                            ExpectedProbability {
-                                probability: 0.50,
-                                fee_rate: 50.0,
-                                tolerance: Some(10.0),
-                            },
-                            ExpectedProbability {
-                                probability: 0.95,
-                                fee_rate: 90.0,
-                                tolerance: Some(10.0),
-                            },
-                        ],
-                    },
-                ],
+                block_targets: vec![ExpectedBlockTarget {
+                    blocks: 3,
+                    probabilities: vec![
+                        ExpectedProbability {
+                            probability: 0.05,
+                            fee_rate: 10.0,
+                            tolerance: Some(5.0),
+                        },
+                        ExpectedProbability {
+                            probability: 0.50,
+                            fee_rate: 50.0,
+                            tolerance: Some(10.0),
+                        },
+                        ExpectedProbability {
+                            probability: 0.95,
+                            fee_rate: 90.0,
+                            tolerance: Some(10.0),
+                        },
+                    ],
+                }],
             },
         }
     }
@@ -127,40 +122,34 @@ impl TestVectorRunner {
         TestVector {
             name: "mempool_congestion".to_string(),
             description: "Congested mempool with high fees".to_string(),
-            mempool_snapshots: vec![
-                MempoolSnapshotData {
-                    block_height: 850100,
-                    timestamp: "2025-01-20T13:00:00Z".to_string(),
-                    transactions: (1..=500)
-                        .map(|i| TransactionData {
-                            weight: 4000,
-                            fee: (i * 5000) as u64,
-                            fee_rate: Some(i as f64 * 5.0),
-                        })
-                        .collect(),
-                },
-            ],
+            mempool_snapshots: vec![MempoolSnapshotData {
+                block_height: 850100,
+                timestamp: "2025-01-20T13:00:00Z".to_string(),
+                transactions: (1..=500)
+                    .map(|i| TransactionData {
+                        weight: 4000,
+                        fee: (i * 5000) as u64,
+                        fee_rate: Some(i as f64 * 5.0),
+                    })
+                    .collect(),
+            }],
             expected_estimates: ExpectedEstimates {
                 block_targets: vec![
                     ExpectedBlockTarget {
                         blocks: 1,
-                        probabilities: vec![
-                            ExpectedProbability {
-                                probability: 0.95,
-                                fee_rate: 400.0,
-                                tolerance: Some(50.0),
-                            },
-                        ],
+                        probabilities: vec![ExpectedProbability {
+                            probability: 0.95,
+                            fee_rate: 400.0,
+                            tolerance: Some(50.0),
+                        }],
                     },
                     ExpectedBlockTarget {
                         blocks: 6,
-                        probabilities: vec![
-                            ExpectedProbability {
-                                probability: 0.50,
-                                fee_rate: 200.0,
-                                tolerance: Some(50.0),
-                            },
-                        ],
+                        probabilities: vec![ExpectedProbability {
+                            probability: 0.50,
+                            fee_rate: 200.0,
+                            tolerance: Some(50.0),
+                        }],
                     },
                 ],
             },
@@ -172,26 +161,20 @@ impl TestVectorRunner {
         TestVector {
             name: "empty_mempool".to_string(),
             description: "Empty mempool should return minimum fees".to_string(),
-            mempool_snapshots: vec![
-                MempoolSnapshotData {
-                    block_height: 850200,
-                    timestamp: "2025-01-20T14:00:00Z".to_string(),
-                    transactions: vec![],
-                },
-            ],
+            mempool_snapshots: vec![MempoolSnapshotData {
+                block_height: 850200,
+                timestamp: "2025-01-20T14:00:00Z".to_string(),
+                transactions: vec![],
+            }],
             expected_estimates: ExpectedEstimates {
-                block_targets: vec![
-                    ExpectedBlockTarget {
-                        blocks: 3,
-                        probabilities: vec![
-                            ExpectedProbability {
-                                probability: 0.95,
-                                fee_rate: 1.0,
-                                tolerance: Some(0.1),
-                            },
-                        ],
-                    },
-                ],
+                block_targets: vec![ExpectedBlockTarget {
+                    blocks: 3,
+                    probabilities: vec![ExpectedProbability {
+                        probability: 0.95,
+                        fee_rate: 1.0,
+                        tolerance: Some(0.1),
+                    }],
+                }],
             },
         }
     }
@@ -199,7 +182,7 @@ impl TestVectorRunner {
     /// Generate high variance test vector
     fn generate_high_variance_vector() -> TestVector {
         let mut transactions = Vec::new();
-        
+
         // Low fee transactions
         for _ in 0..100 {
             transactions.push(TransactionData {
@@ -208,7 +191,7 @@ impl TestVectorRunner {
                 fee_rate: Some(1.0),
             });
         }
-        
+
         // High fee transactions
         for _ in 0..50 {
             transactions.push(TransactionData {
@@ -221,31 +204,27 @@ impl TestVectorRunner {
         TestVector {
             name: "high_variance".to_string(),
             description: "Mempool with high fee variance".to_string(),
-            mempool_snapshots: vec![
-                MempoolSnapshotData {
-                    block_height: 850300,
-                    timestamp: "2025-01-20T15:00:00Z".to_string(),
-                    transactions,
-                },
-            ],
+            mempool_snapshots: vec![MempoolSnapshotData {
+                block_height: 850300,
+                timestamp: "2025-01-20T15:00:00Z".to_string(),
+                transactions,
+            }],
             expected_estimates: ExpectedEstimates {
-                block_targets: vec![
-                    ExpectedBlockTarget {
-                        blocks: 3,
-                        probabilities: vec![
-                            ExpectedProbability {
-                                probability: 0.05,
-                                fee_rate: 1.0,
-                                tolerance: Some(0.5),
-                            },
-                            ExpectedProbability {
-                                probability: 0.95,
-                                fee_rate: 100.0,
-                                tolerance: Some(20.0),
-                            },
-                        ],
-                    },
-                ],
+                block_targets: vec![ExpectedBlockTarget {
+                    blocks: 3,
+                    probabilities: vec![
+                        ExpectedProbability {
+                            probability: 0.05,
+                            fee_rate: 1.0,
+                            tolerance: Some(0.5),
+                        },
+                        ExpectedProbability {
+                            probability: 0.95,
+                            fee_rate: 100.0,
+                            tolerance: Some(20.0),
+                        },
+                    ],
+                }],
             },
         }
     }
@@ -256,36 +235,34 @@ impl TestVectorRunner {
         TestVector {
             name: "reference_compatibility".to_string(),
             description: "Test vector matching Kotlin reference implementation".to_string(),
-            mempool_snapshots: vec![
-                MempoolSnapshotData {
-                    block_height: 850000,
-                    timestamp: "2025-01-15T10:00:00.123Z".to_string(),
-                    transactions: vec![
-                        // Block 1 transactions
-                        TransactionData {
-                            weight: 4000,
-                            fee: 42000,
-                            fee_rate: Some(10.5),
-                        },
-                        TransactionData {
-                            weight: 4000,
-                            fee: 61000,
-                            fee_rate: Some(15.25),
-                        },
-                        // Block 6 transactions
-                        TransactionData {
-                            weight: 4000,
-                            fee: 23000,
-                            fee_rate: Some(5.75),
-                        },
-                        TransactionData {
-                            weight: 4000,
-                            fee: 32494,
-                            fee_rate: Some(8.1234),
-                        },
-                    ],
-                },
-            ],
+            mempool_snapshots: vec![MempoolSnapshotData {
+                block_height: 850000,
+                timestamp: "2025-01-15T10:00:00.123Z".to_string(),
+                transactions: vec![
+                    // Block 1 transactions
+                    TransactionData {
+                        weight: 4000,
+                        fee: 42000,
+                        fee_rate: Some(10.5),
+                    },
+                    TransactionData {
+                        weight: 4000,
+                        fee: 61000,
+                        fee_rate: Some(15.25),
+                    },
+                    // Block 6 transactions
+                    TransactionData {
+                        weight: 4000,
+                        fee: 23000,
+                        fee_rate: Some(5.75),
+                    },
+                    TransactionData {
+                        weight: 4000,
+                        fee: 32494,
+                        fee_rate: Some(8.1234),
+                    },
+                ],
+            }],
             expected_estimates: ExpectedEstimates {
                 block_targets: vec![
                     ExpectedBlockTarget {
@@ -326,9 +303,9 @@ impl TestVectorRunner {
     /// Run test vector
     pub fn run_vector(vector: &TestVector) -> Result<TestVectorResult> {
         info!("Running test vector: {}", vector.name);
-        
+
         let estimator = bitcoin_augur::FeeEstimator::new();
-        
+
         // Convert test vector data to mempool snapshots
         let mut snapshots = Vec::new();
         for snapshot_data in &vector.mempool_snapshots {
@@ -337,34 +314,34 @@ impl TestVectorRunner {
                 .iter()
                 .map(|tx| MempoolTransaction::new(tx.weight as u64, tx.fee))
                 .collect();
-            
+
             let timestamp = DateTime::parse_from_rfc3339(&snapshot_data.timestamp)
                 .unwrap()
                 .with_timezone(&Utc);
-            
+
             snapshots.push(MempoolSnapshot::from_transactions(
                 transactions,
                 snapshot_data.block_height as u32,
                 timestamp,
             ));
         }
-        
+
         // Calculate estimates
         let estimates = estimator.calculate_estimates(&snapshots, None)?;
-        
+
         // Validate against expected estimates
         let mut validations = Vec::new();
         for expected_target in &vector.expected_estimates.block_targets {
             let actual_target = estimates.estimates.get(&(expected_target.blocks as u32));
-            
+
             if let Some(actual) = actual_target {
                 for expected_prob in &expected_target.probabilities {
                     let actual_fee = actual.get_fee_rate(expected_prob.probability);
-                    
+
                     let validation = if let Some(fee) = actual_fee {
                         let tolerance = expected_prob.tolerance.unwrap_or(0.01);
                         let diff = (fee - expected_prob.fee_rate).abs();
-                        
+
                         ProbabilityValidation {
                             blocks: expected_target.blocks,
                             probability: expected_prob.probability,
@@ -387,7 +364,7 @@ impl TestVectorRunner {
                             message: "No fee rate calculated".to_string(),
                         }
                     };
-                    
+
                     validations.push(validation);
                 }
             } else {
@@ -403,9 +380,9 @@ impl TestVectorRunner {
                 }
             }
         }
-        
+
         let all_passed = validations.iter().all(|v| v.passed);
-        
+
         Ok(TestVectorResult {
             name: vector.name.clone(),
             passed: all_passed,
@@ -444,28 +421,28 @@ pub struct ProbabilityValidation {
 impl TestVectorResult {
     pub fn print_summary(&self) {
         use colored::Colorize;
-        
+
         let status = if self.passed {
             "PASSED".green()
         } else {
             "FAILED".red()
         };
-        
+
         println!("\nTest Vector: {} [{}]", self.name, status);
         println!("{}", "-".repeat(60));
-        
+
         for validation in &self.validations {
             let symbol = if validation.passed {
                 "✓".green()
             } else {
                 "✗".red()
             };
-            
+
             let actual_str = validation
                 .actual
                 .map(|v| format!("{:.4}", v))
                 .unwrap_or_else(|| "N/A".to_string());
-            
+
             println!(
                 "{} Blocks: {}, Prob: {:.2}, Expected: {:.4}, Actual: {}, {}",
                 symbol,
