@@ -1,0 +1,161 @@
+name: Regression Tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  schedule:
+    - cron: '0 4 * * *' # Daily at 4 AM UTC
+  workflow_dispatch:
+
+jobs:
+  regression-tests:
+    name: Run Regression Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+        
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-regression-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-target-regression-
+            ${{ runner.os }}-target-
+
+      - name: Build server and regression tests
+        run: |
+          cargo build --release -p bitcoin-augur-server
+          cargo build --release -p bitcoin-augur-regression-tests
+
+      - name: Run test vector validation
+        run: |
+          ./target/release/bitcoin-augur-regression-tests vectors
+
+      - name: Generate test data
+        run: |
+          ./target/release/bitcoin-augur-regression-tests generate \
+            --output test-data \
+            --count 50
+
+      - name: Run snapshot tests
+        run: |
+          ./target/release/bitcoin-augur-regression-tests snapshots \
+            --server-path ./target/release/bitcoin-augur-server
+
+      - name: Run compatibility tests
+        run: |
+          ./target/release/bitcoin-augur-regression-tests compatibility \
+            --server-path ./target/release/bitcoin-augur-server
+
+      - name: Run all regression tests
+        run: |
+          ./target/release/bitcoin-augur-regression-tests run \
+            --server-path ./target/release/bitcoin-augur-server \
+            --data-dir test-data \
+            --jobs 2
+
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-test-artifacts
+          path: |
+            test-data/
+            bitcoin-augur-regression-tests/snapshots/
+            
+  cross-implementation:
+    name: Cross-Implementation Compatibility
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build Rust server
+        run: |
+          cargo build --release -p bitcoin-augur-server
+          cargo build --release -p bitcoin-augur-regression-tests
+
+      - name: Build reference implementation
+        run: |
+          cd ../bitcoin-augur-reference || echo "Reference implementation not available"
+          if [ -f gradlew ]; then
+            ./gradlew build
+            echo "REFERENCE_JAR=$(find build -name '*.jar' | head -1)" >> $GITHUB_ENV
+          fi
+        continue-on-error: true
+
+      - name: Run cross-implementation tests
+        if: env.REFERENCE_JAR != ''
+        run: |
+          ./target/release/bitcoin-augur-regression-tests compatibility \
+            --server-path ./target/release/bitcoin-augur-server \
+            --reference-jar $REFERENCE_JAR \
+            --with-reference
+        continue-on-error: true
+
+      - name: Compare API responses
+        if: env.REFERENCE_JAR != ''
+        run: |
+          # Start both servers
+          ./target/release/bitcoin-augur-server &
+          RUST_PID=$!
+          
+          if [ -f "$REFERENCE_JAR" ]; then
+            java -jar $REFERENCE_JAR &
+            JAVA_PID=$!
+            
+            sleep 10
+            
+            # Compare responses
+            ./target/release/bitcoin-augur-regression-tests compare \
+              http://localhost:8080 \
+              http://localhost:8090 \
+              /fees || true
+              
+            kill $JAVA_PID || true
+          fi
+          
+          kill $RUST_PID || true
+        continue-on-error: true
