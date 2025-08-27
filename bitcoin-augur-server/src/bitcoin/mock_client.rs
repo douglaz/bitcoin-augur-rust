@@ -2,7 +2,7 @@ use super::RpcError;
 use bitcoin_augur::MempoolTransaction;
 
 /// Mock Bitcoin RPC client for testing
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct MockBitcoinClient;
 
 impl MockBitcoinClient {

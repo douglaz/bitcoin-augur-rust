@@ -83,21 +83,14 @@ impl Default for CollectorConfig {
 }
 
 /// Test mode configuration
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct TestModeConfig {
     /// Enable test mode (bypasses Bitcoin RPC)
+    #[serde(default)]
     pub enabled: bool,
     /// Use mock data instead of real Bitcoin data
+    #[serde(default)]
     pub use_mock_data: bool,
-}
-
-impl Default for TestModeConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            use_mock_data: false,
-        }
-    }
 }
 
 impl AppConfig {

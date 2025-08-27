@@ -87,7 +87,7 @@ mod tests {
             password: "test".to_string(),
         };
 
-        let bitcoin_client = BitcoinRpcClient::new(config);
+        let bitcoin_client = crate::bitcoin::BitcoinClient::Real(BitcoinRpcClient::new(config));
         let snapshot_store = SnapshotStore::new(temp_dir.path()).unwrap();
         let fee_estimator = FeeEstimator::new();
 
