@@ -3,6 +3,8 @@
 //! Provides a controllable Bitcoin Core RPC mock that can simulate
 //! various mempool states for testing fee estimation algorithms.
 
+#![allow(dead_code)]
+
 use anyhow::Result;
 use axum::{extract::State, http::StatusCode, routing::post, Json, Router};
 use serde::{Deserialize, Serialize};
@@ -144,7 +146,7 @@ async fn handle_rpc(
             if let Some(params) = request.params {
                 if let Some(verbose) = params
                     .as_array()
-                    .and_then(|a| a.get(0))
+                    .and_then(|a| a.first())
                     .and_then(|v| v.as_bool())
                 {
                     if verbose {
@@ -190,7 +192,7 @@ async fn handle_rpc(
             if let Some(params) = request.params {
                 if let Some(txid) = params
                     .as_array()
-                    .and_then(|a| a.get(0))
+                    .and_then(|a| a.first())
                     .and_then(|v| v.as_str())
                 {
                     let mempool = state.mempool.read().unwrap();

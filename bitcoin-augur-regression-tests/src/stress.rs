@@ -2,6 +2,8 @@
 //!
 //! Tests server behavior under concurrent load and stress conditions
 
+#![allow(dead_code)]
+
 use anyhow::Result;
 use colored::*;
 use futures::future::join_all;
