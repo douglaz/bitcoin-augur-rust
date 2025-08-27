@@ -48,13 +48,15 @@ jobs:
       
       - name: Run snapshot tests
         run: |
-          nix develop -c ./target/release/bitcoin-augur-regression-tests snapshots \
-            --server-path ./target/release/bitcoin-augur-server
+          nix develop -c ./target/release/bitcoin-augur-regression-tests \
+            --server-path ./target/release/bitcoin-augur-server \
+            snapshots
       
       - name: Run compatibility tests  
         run: |
-          nix develop -c ./target/release/bitcoin-augur-regression-tests compatibility \
-            --server-path ./target/release/bitcoin-augur-server
+          nix develop -c ./target/release/bitcoin-augur-regression-tests \
+            --server-path ./target/release/bitcoin-augur-server \
+            compatibility
 
       - name: Upload test artifacts on failure
         if: failure()

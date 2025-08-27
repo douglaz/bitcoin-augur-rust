@@ -249,18 +249,11 @@ impl TestVectorRunner {
             expected_estimates: ExpectedEstimates {
                 block_targets: vec![ExpectedBlockTarget {
                     blocks: 6,
-                    probabilities: vec![
-                        ExpectedProbability {
-                            probability: 0.50,
-                            fee_rate: 1.0, // Minimum without sufficient history
-                            tolerance: Some(0.5),
-                        },
-                        ExpectedProbability {
-                            probability: 0.90,
-                            fee_rate: 1.0, // Minimum without sufficient history
-                            tolerance: Some(0.5),
-                        },
-                    ],
+                    probabilities: vec![ExpectedProbability {
+                        probability: 0.50,
+                        fee_rate: 1.0, // Minimum without sufficient history
+                        tolerance: Some(0.5),
+                    }],
                 }],
             },
         }
