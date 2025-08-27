@@ -43,6 +43,7 @@ exceptions = [
     { allow = ["CDLA-Permissive-2.0"], name = "webpki-roots" },
     { allow = ["Unicode-3.0"], name = "zerotrie" },
     { allow = ["Unicode-3.0"], name = "zerovec" },
+    { allow = ["Unicode-3.0"], name = "zerovec-derive" },
 ]
 
 [bans]
