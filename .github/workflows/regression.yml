@@ -16,21 +16,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
       - name: Install Nix
         uses: cachix/install-nix-action@v30
         
-      - name: Cache Cargo registry
+      - name: Cache Nix store
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          path: /nix/store
+          key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-nix-
 
       - name: Cache target directory
         uses: actions/cache@v4
@@ -41,34 +36,34 @@ jobs:
             ${{ runner.os }}-target-regression-
             ${{ runner.os }}-target-
 
-      - name: Build server and regression tests
+      - name: Build server and regression tests with Nix
         run: |
-          cargo build --release -p bitcoin-augur-server
-          cargo build --release -p bitcoin-augur-regression-tests
+          nix develop -c cargo build --release -p bitcoin-augur-server
+          nix develop -c cargo build --release -p bitcoin-augur-regression-tests
 
       - name: Run test vector validation
         run: |
-          ./target/release/bitcoin-augur-regression-tests vectors
+          nix develop -c ./target/release/bitcoin-augur-regression-tests vectors
 
       - name: Generate test data
         run: |
-          ./target/release/bitcoin-augur-regression-tests generate \
+          nix develop -c ./target/release/bitcoin-augur-regression-tests generate \
             --output test-data \
             --count 50
 
       - name: Run snapshot tests
         run: |
-          ./target/release/bitcoin-augur-regression-tests snapshots \
+          nix develop -c ./target/release/bitcoin-augur-regression-tests snapshots \
             --server-path ./target/release/bitcoin-augur-server
 
       - name: Run compatibility tests
         run: |
-          ./target/release/bitcoin-augur-regression-tests compatibility \
+          nix develop -c ./target/release/bitcoin-augur-regression-tests compatibility \
             --server-path ./target/release/bitcoin-augur-server
 
       - name: Run all regression tests
         run: |
-          ./target/release/bitcoin-augur-regression-tests run \
+          nix develop -c ./target/release/bitcoin-augur-regression-tests run \
             --server-path ./target/release/bitcoin-augur-server \
             --data-dir test-data \
             --jobs 2
@@ -90,8 +85,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
 
       - name: Install Java
         uses: actions/setup-java@v4
@@ -99,23 +94,27 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Nix
-        uses: cachix/install-nix-action@v30
-
-      - name: Cache Cargo registry
+      - name: Cache Nix store
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          path: /nix/store
+          key: ${{ runner.os }}-nix-${{ hashFiles('flake.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-nix-
 
-      - name: Build Rust server
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-target-cross-impl-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-target-cross-impl-
+            ${{ runner.os }}-target-
+
+      - name: Build Rust server with Nix
         run: |
-          cargo build --release -p bitcoin-augur-server
-          cargo build --release -p bitcoin-augur-regression-tests
+          nix develop -c cargo build --release -p bitcoin-augur-server
+          nix develop -c cargo build --release -p bitcoin-augur-regression-tests
 
       - name: Build reference implementation
         run: |
@@ -129,7 +128,7 @@ jobs:
       - name: Run cross-implementation tests
         if: env.REFERENCE_JAR != ''
         run: |
-          ./target/release/bitcoin-augur-regression-tests compatibility \
+          nix develop -c ./target/release/bitcoin-augur-regression-tests compatibility \
             --server-path ./target/release/bitcoin-augur-server \
             --reference-jar $REFERENCE_JAR \
             --with-reference
@@ -138,8 +137,8 @@ jobs:
       - name: Compare API responses
         if: env.REFERENCE_JAR != ''
         run: |
-          # Start both servers
-          ./target/release/bitcoin-augur-server &
+          # Start Rust server with Nix
+          nix develop -c ./target/release/bitcoin-augur-server &
           RUST_PID=$!
           
           if [ -f "$REFERENCE_JAR" ]; then
@@ -148,8 +147,8 @@ jobs:
             
             sleep 10
             
-            # Compare responses
-            ./target/release/bitcoin-augur-regression-tests compare \
+            # Compare responses with Nix
+            nix develop -c ./target/release/bitcoin-augur-regression-tests compare \
               http://localhost:8080 \
               http://localhost:8090 \
               /fees || true
