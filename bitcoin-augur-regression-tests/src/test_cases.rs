@@ -45,7 +45,7 @@ impl TestCaseGenerator {
 
         // Generate various test scenarios
         for i in 0..count {
-            let case = match i % 10 {
+            let case = match i % 14 {
                 0 => Self::generate_empty_mempool(),
                 1 => Self::generate_single_transaction(),
                 2 => Self::generate_uniform_distribution(&mut rng),
@@ -55,7 +55,11 @@ impl TestCaseGenerator {
                 6 => Self::generate_graduated_fees(&mut rng),
                 7 => Self::generate_random_distribution(&mut rng),
                 8 => Self::generate_large_mempool(&mut rng),
-                _ => Self::generate_mixed_weights(&mut rng),
+                9 => Self::generate_mixed_weights(&mut rng),
+                10 => Self::generate_consistent_fee_increase(&mut rng),
+                11 => Self::generate_probability_ordering_test(&mut rng),
+                12 => Self::generate_high_longterm_inflow(&mut rng),
+                _ => Self::generate_unordered_snapshots(&mut rng),
             };
             cases.push(case);
         }
@@ -425,6 +429,180 @@ impl TestCaseGenerator {
             mempool_state: MempoolState {
                 transactions,
                 block_height: 850000 + rng.gen_range(0..1000),
+            },
+            api_calls: vec![ApiCall {
+                method: "GET".to_string(),
+                path: "/fees".to_string(),
+                expected_status: 200,
+                validate_response: true,
+            }],
+        }
+    }
+
+    /// Generate consistent fee increase scenario
+    fn generate_consistent_fee_increase(rng: &mut impl Rng) -> TestCase {
+        let mut transactions = Vec::new();
+        let base_fee = 1.0;
+
+        // Create transactions with steadily increasing fees
+        for i in 0..100 {
+            let weight = rng.gen_range(1000..2000);
+            let fee_rate = base_fee + (i as f64 * 0.5);
+            transactions.push(TestTransaction {
+                weight,
+                fee: ((fee_rate * weight as f64) / 4.0) as u64,
+                fee_rate: Some(fee_rate),
+            });
+        }
+
+        TestCase {
+            name: "consistent_fee_increase".to_string(),
+            description: "Consistently increasing fee rates".to_string(),
+            mempool_state: MempoolState {
+                transactions,
+                block_height: 850000,
+            },
+            api_calls: vec![
+                ApiCall {
+                    method: "GET".to_string(),
+                    path: "/fees".to_string(),
+                    expected_status: 200,
+                    validate_response: true,
+                },
+                ApiCall {
+                    method: "GET".to_string(),
+                    path: "/fees/target/3".to_string(),
+                    expected_status: 200,
+                    validate_response: true,
+                },
+            ],
+        }
+    }
+
+    /// Generate probability ordering test
+    fn generate_probability_ordering_test(rng: &mut impl Rng) -> TestCase {
+        let mut transactions = Vec::new();
+
+        // Create specific distribution to test probability ordering
+        // High confidence transactions (95th percentile)
+        for _ in 0..5 {
+            let weight = rng.gen_range(1000..1500);
+            let fee_rate = rng.gen_range(50..60) as f64;
+            transactions.push(TestTransaction {
+                weight,
+                fee: ((fee_rate * weight as f64) / 4.0) as u64,
+                fee_rate: Some(fee_rate),
+            });
+        }
+
+        // Medium confidence transactions (75th percentile)
+        for _ in 0..25 {
+            let weight = rng.gen_range(1500..2500);
+            let fee_rate = rng.gen_range(20..30) as f64;
+            transactions.push(TestTransaction {
+                weight,
+                fee: ((fee_rate * weight as f64) / 4.0) as u64,
+                fee_rate: Some(fee_rate),
+            });
+        }
+
+        // Low confidence transactions (50th percentile)
+        for _ in 0..70 {
+            let weight = rng.gen_range(1000..3000);
+            let fee_rate = rng.gen_range(5..15) as f64;
+            transactions.push(TestTransaction {
+                weight,
+                fee: ((fee_rate * weight as f64) / 4.0) as u64,
+                fee_rate: Some(fee_rate),
+            });
+        }
+
+        TestCase {
+            name: "probability_ordering".to_string(),
+            description: "Test probability ordering in fee estimates".to_string(),
+            mempool_state: MempoolState {
+                transactions,
+                block_height: 850000,
+            },
+            api_calls: vec![ApiCall {
+                method: "GET".to_string(),
+                path: "/fees".to_string(),
+                expected_status: 200,
+                validate_response: true,
+            }],
+        }
+    }
+
+    /// Generate high long-term inflow scenario
+    fn generate_high_longterm_inflow(rng: &mut impl Rng) -> TestCase {
+        let mut transactions = Vec::new();
+
+        // Simulate sustained high transaction volume
+        // Many transactions at various fee levels
+        for fee_level in [1, 2, 5, 10, 20, 50, 100] {
+            for _ in 0..50 {
+                let weight = rng.gen_range(800..3000);
+                let fee_rate = (fee_level as f64) + rng.gen_range(0..2) as f64;
+                transactions.push(TestTransaction {
+                    weight,
+                    fee: ((fee_rate * weight as f64) / 4.0) as u64,
+                    fee_rate: Some(fee_rate),
+                });
+            }
+        }
+
+        TestCase {
+            name: "high_longterm_inflow".to_string(),
+            description: "High sustained transaction inflow".to_string(),
+            mempool_state: MempoolState {
+                transactions,
+                block_height: 850000,
+            },
+            api_calls: vec![
+                ApiCall {
+                    method: "GET".to_string(),
+                    path: "/fees".to_string(),
+                    expected_status: 200,
+                    validate_response: true,
+                },
+                ApiCall {
+                    method: "GET".to_string(),
+                    path: "/fees/target/144".to_string(),
+                    expected_status: 200,
+                    validate_response: true,
+                },
+            ],
+        }
+    }
+
+    /// Generate unordered snapshots scenario
+    fn generate_unordered_snapshots(rng: &mut impl Rng) -> TestCase {
+        let mut transactions = Vec::new();
+
+        // Create transactions in random order (not sorted by fee rate)
+        let fee_rates = vec![30.0, 5.0, 100.0, 2.0, 50.0, 15.0, 75.0, 8.0, 40.0, 1.0];
+
+        for &fee_rate in &fee_rates {
+            for _ in 0..10 {
+                let weight = rng.gen_range(1000..4000);
+                transactions.push(TestTransaction {
+                    weight,
+                    fee: ((fee_rate * weight as f64) / 4.0) as u64,
+                    fee_rate: Some(fee_rate),
+                });
+            }
+        }
+
+        // Shuffle transactions to ensure they're not ordered
+        use rand::seq::SliceRandom;
+        transactions.shuffle(rng);
+
+        TestCase {
+            name: "unordered_snapshots".to_string(),
+            description: "Unordered transaction snapshots".to_string(),
+            mempool_state: MempoolState {
+                transactions,
+                block_height: 850000,
             },
             api_calls: vec![ApiCall {
                 method: "GET".to_string(),

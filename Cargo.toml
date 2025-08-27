@@ -1,5 +1,5 @@
 [workspace]
-members = ["bitcoin-augur", "bitcoin-augur-server", "bitcoin-augur-integration-tests", "bitcoin-augur-regression-tests"]
+members = ["bitcoin-augur", "bitcoin-augur-server", "bitcoin-augur-regression-tests"]
 exclude = ["fuzz"]
 resolver = "2"
 

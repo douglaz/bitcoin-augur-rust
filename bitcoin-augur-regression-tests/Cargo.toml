@@ -53,4 +53,7 @@ insta = { version = "1.43", features = ["json", "redactions"] }
 # For test execution
 assert-json-diff = "2.0"
 
+# For mock RPC server
+axum = "0.7"
+
 [dev-dependencies]
