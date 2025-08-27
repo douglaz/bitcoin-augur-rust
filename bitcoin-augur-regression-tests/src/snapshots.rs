@@ -26,8 +26,9 @@ impl SnapshotTester {
         settings.set_snapshot_path("snapshots");
 
         if self.update_snapshots {
-            // Note: insta doesn't have set_update_snapshots method in this version
-            // Will rely on INSTA_UPDATE environment variable instead
+            // Insta uses environment variables for controlling snapshot updates.
+            // We programmatically set it here to give users control via CLI flags.
+            std::env::set_var("INSTA_UPDATE", "always");
         }
 
         // Run the async tests directly without creating a new runtime
