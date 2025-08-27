@@ -63,7 +63,7 @@ impl CompatibilityTests {
                 }
             }
             Err(e) => {
-                results.add_fail(test_name, &format!("Request failed: {}", e));
+                results.add_fail(test_name, &format!("Request failed: {e}"));
             }
         }
 
@@ -78,7 +78,7 @@ impl CompatibilityTests {
         let test_targets = vec![3.0, 6.0, 12.0, 24.0, 144.0];
 
         for target in test_targets {
-            let test_name = format!("GET /fees/target/{}", target);
+            let test_name = format!("GET /fees/target/{target}");
 
             match self.rust_client.get_fees_for_target(target).await {
                 Ok(resp) => {
@@ -89,7 +89,7 @@ impl CompatibilityTests {
                     }
                 }
                 Err(e) => {
-                    results.add_fail(&test_name, &format!("Failed: {}", e));
+                    results.add_fail(&test_name, &format!("Failed: {e}"));
                 }
             }
         }
@@ -110,19 +110,19 @@ impl CompatibilityTests {
         ];
 
         for (test_case, value) in invalid_targets {
-            let test_name = format!("Invalid target: {}", test_case);
-            let path = format!("/fees/target/{}", value);
+            let test_name = format!("Invalid target: {test_case}");
+            let path = format!("/fees/target/{value}");
 
             match self.rust_client.get_raw(&path).await {
                 Ok((status, _body)) => {
                     if status.as_u16() == 400 || status.as_u16() == 404 {
-                        results.add_pass(&test_name, &format!("Correctly returned {}", status));
+                        results.add_pass(&test_name, &format!("Correctly returned {status}"));
                     } else {
-                        results.add_fail(&test_name, &format!("Unexpected status: {}", status));
+                        results.add_fail(&test_name, &format!("Unexpected status: {status}"));
                     }
                 }
                 Err(e) => {
-                    results.add_fail(&test_name, &format!("Request error: {}", e));
+                    results.add_fail(&test_name, &format!("Request error: {e}"));
                 }
             }
         }
@@ -149,11 +149,11 @@ impl CompatibilityTests {
                         results.add_fail(test_name, "JSON format invalid");
                     }
                 } else {
-                    results.add_fail(test_name, &format!("Unexpected status: {}", status));
+                    results.add_fail(test_name, &format!("Unexpected status: {status}"));
                 }
             }
             Err(e) => {
-                results.add_fail(test_name, &format!("Request failed: {}", e));
+                results.add_fail(test_name, &format!("Request failed: {e}"));
             }
         }
 
@@ -175,7 +175,7 @@ impl CompatibilityTests {
                     if differences.is_empty() {
                         results.add_pass(test_name, "Responses match");
                     } else {
-                        let msg = format!("{} differences found", differences.len());
+                        let msg = format!("{count} differences found", count = differences.len());
                         results.add_warning(test_name, &msg);
                         for diff in &differences {
                             debug!("  - {diff}");
@@ -183,14 +183,14 @@ impl CompatibilityTests {
                     }
                 }
                 Err(e) => {
-                    results.add_fail(test_name, &format!("Comparison failed: {}", e));
+                    results.add_fail(test_name, &format!("Comparison failed: {e}"));
                 }
             }
 
             // Test specific targets
             for target in [3.0, 6.0, 12.0] {
-                let test_name = format!("Cross-impl: /fees/target/{}", target);
-                let path = format!("/fees/target/{}", target);
+                let test_name = format!("Cross-impl: /fees/target/{target}");
+                let path = format!("/fees/target/{target}");
 
                 match self
                     .compare_endpoints(&self.rust_client, ref_client, &path)
@@ -202,12 +202,12 @@ impl CompatibilityTests {
                         } else {
                             results.add_warning(
                                 &test_name,
-                                &format!("{} differences", differences.len()),
+                                &format!("{count} differences", count = differences.len()),
                             );
                         }
                     }
                     Err(e) => {
-                        results.add_fail(&test_name, &format!("Failed: {}", e));
+                        results.add_fail(&test_name, &format!("Failed: {e}"));
                     }
                 }
             }
@@ -230,7 +230,7 @@ impl CompatibilityTests {
 
         // Compare status codes
         if status1 != status2 {
-            differences.push(format!("Status code mismatch: {} vs {}", status1, status2));
+            differences.push(format!("Status code mismatch: {status1} vs {status2}"));
             return Ok(differences);
         }
 

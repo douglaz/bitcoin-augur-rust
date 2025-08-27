@@ -122,12 +122,12 @@ impl ServerManager {
         let config = format!(
             r#"# Test configuration for bitcoin-augur-server
 server:
-  port: {}
+  port: {port}
   host: "127.0.0.1"
 
 mempool:
   refresh_interval_secs: 5
-  data_path: "{}"
+  data_path: "{data_path}"
   max_snapshots: 100
 
 bitcoin:
@@ -139,8 +139,8 @@ logging:
   level: "info"
   format: "json"
 "#,
-            self.port,
-            self.data_dir.join("mempool").display()
+            port = self.port,
+            data_path = self.data_dir.join("mempool").display()
         );
 
         tokio::fs::create_dir_all(path.parent().unwrap()).await?;
@@ -266,12 +266,12 @@ impl ReferenceServerManager {
         let config = format!(
             r#"# Test configuration for reference server
 server:
-  port: {}
+  port: {port}
   host: "127.0.0.1"
 
 mempool:
   refreshIntervalSecs: 5
-  dataPath: "{}"
+  dataPath: "{data_path}"
   maxSnapshots: 100
 
 bitcoin:
@@ -282,8 +282,8 @@ bitcoin:
 logging:
   level: "INFO"
 "#,
-            self.port,
-            self.data_dir.join("mempool-ref").display()
+            port = self.port,
+            data_path = self.data_dir.join("mempool-ref").display()
         );
 
         tokio::fs::create_dir_all(path.parent().unwrap()).await?;

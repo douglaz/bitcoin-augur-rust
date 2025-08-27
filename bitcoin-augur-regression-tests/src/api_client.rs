@@ -28,7 +28,7 @@ impl ApiClient {
 
     /// Get fee estimates for all targets
     pub async fn get_fees(&self) -> Result<FeeEstimateResponse> {
-        let url = format!("{}/fees", self.base_url);
+        let url = format!("{base_url}/fees", base_url = self.base_url);
         debug!("Getting fee estimates from {url}");
 
         let response = self
@@ -50,11 +50,11 @@ impl ApiClient {
 
     /// Get fee estimates for specific block target
     pub async fn get_fees_for_target(&self, num_blocks: f64) -> Result<FeeEstimateResponse> {
-        let url = format!("{}/fees/target/{}", self.base_url, num_blocks);
-        debug!(
-            "Getting fee estimates for {} blocks from {}",
-            num_blocks, url
+        let url = format!(
+            "{base_url}/fees/target/{num_blocks}",
+            base_url = self.base_url
         );
+        debug!("Getting fee estimates for {num_blocks} blocks from {url}");
 
         let response = self
             .client
@@ -75,7 +75,7 @@ impl ApiClient {
 
     /// Get raw response as JSON value (for compatibility testing)
     pub async fn get_raw(&self, path: &str) -> Result<(StatusCode, Value)> {
-        let url = format!("{}{}", self.base_url, path);
+        let url = format!("{base_url}{path}", base_url = self.base_url);
         trace!("Getting raw response from {url}");
 
         let response = self
@@ -106,7 +106,7 @@ impl ApiClient {
 
     /// Check server health
     pub async fn health_check(&self) -> Result<bool> {
-        let url = format!("{}/health", self.base_url);
+        let url = format!("{base_url}/health", base_url = self.base_url);
         let response = self.client.get(&url).send().await?;
         Ok(response.status().is_success())
     }
@@ -175,9 +175,9 @@ impl ResponseComparator {
         // Compare estimates availability
         if resp1.has_estimates() != resp2.has_estimates() {
             differences.push(format!(
-                "Estimates availability mismatch: {} vs {}",
-                resp1.has_estimates(),
-                resp2.has_estimates()
+                "Estimates availability mismatch: {has1} vs {has2}",
+                has1 = resp1.has_estimates(),
+                has2 = resp2.has_estimates()
             ));
             return Ok(differences);
         }
@@ -215,8 +215,7 @@ impl ResponseComparator {
 
         if probs1 != probs2 {
             differences.push(format!(
-                "Block {} probabilities mismatch: {:?} vs {:?}",
-                block_num, probs1, probs2
+                "Block {block_num} probabilities mismatch: {probs1:?} vs {probs2:?}"
             ));
         }
 
@@ -228,8 +227,10 @@ impl ResponseComparator {
 
                 if diff > tolerance {
                     differences.push(format!(
-                        "Block {} probability {} fee rate mismatch: {:.4} vs {:.4}",
-                        block_num, prob_str, prob1.fee_rate, prob2.fee_rate
+                        "Block {block_num} probability {prob} fee rate mismatch: {fee1:.4} vs {fee2:.4}",
+                        prob = prob_str,
+                        fee1 = prob1.fee_rate,
+                        fee2 = prob2.fee_rate
                     ));
                 }
             }
@@ -255,18 +256,18 @@ impl ResponseComparator {
                     map1.keys().chain(map2.keys()).collect();
 
                 for key in all_keys {
-                    let new_path = format!("{}.{}", path, key);
+                    let new_path = format!("{path}.{key}");
                     match (map1.get(key), map2.get(key)) {
                         (Some(v1), Some(v2)) => {
                             Self::compare_json_recursive(v1, v2, &new_path, differences);
                         }
                         (Some(_), None) => {
                             differences
-                                .push(format!("{}: present in first, missing in second", new_path));
+                                .push(format!("{new_path}: present in first, missing in second"));
                         }
                         (None, Some(_)) => {
                             differences
-                                .push(format!("{}: missing in first, present in second", new_path));
+                                .push(format!("{new_path}: missing in first, present in second"));
                         }
                         _ => {}
                     }
@@ -275,14 +276,13 @@ impl ResponseComparator {
             (Value::Array(arr1), Value::Array(arr2)) => {
                 if arr1.len() != arr2.len() {
                     differences.push(format!(
-                        "{}: array length mismatch ({} vs {})",
-                        path,
-                        arr1.len(),
-                        arr2.len()
+                        "{path}: array length mismatch ({len1} vs {len2})",
+                        len1 = arr1.len(),
+                        len2 = arr2.len()
                     ));
                 } else {
                     for (i, (item1, item2)) in arr1.iter().zip(arr2.iter()).enumerate() {
-                        let new_path = format!("{}[{}]", path, i);
+                        let new_path = format!("{path}[{i}]");
                         Self::compare_json_recursive(item1, item2, &new_path, differences);
                     }
                 }
@@ -292,10 +292,10 @@ impl ResponseComparator {
                     let diff = (f1 - f2).abs();
                     let tolerance = 0.0001;
                     if diff > tolerance {
-                        differences.push(format!("{}: number mismatch ({} vs {})", path, f1, f2));
+                        differences.push(format!("{path}: number mismatch ({f1} vs {f2})"));
                     }
                 } else if n1 != n2 {
-                    differences.push(format!("{}: number mismatch ({} vs {})", path, n1, n2));
+                    differences.push(format!("{path}: number mismatch ({n1} vs {n2})"));
                 }
             }
             (Value::String(s1), Value::String(s2)) => {
@@ -305,14 +305,14 @@ impl ResponseComparator {
                     let valid1 = DateTime::parse_from_rfc3339(s1).is_ok();
                     let valid2 = DateTime::parse_from_rfc3339(s2).is_ok();
                     if !valid1 || !valid2 {
-                        differences.push(format!("{}: invalid timestamp format", path));
+                        differences.push(format!("{path}: invalid timestamp format"));
                     }
                 } else if s1 != s2 {
-                    differences.push(format!("{}: string mismatch ({} vs {})", path, s1, s2));
+                    differences.push(format!("{path}: string mismatch ({s1} vs {s2})"));
                 }
             }
             (v1, v2) if v1 != v2 => {
-                differences.push(format!("{}: value mismatch", path));
+                differences.push(format!("{path}: value mismatch"));
             }
             _ => {}
         }

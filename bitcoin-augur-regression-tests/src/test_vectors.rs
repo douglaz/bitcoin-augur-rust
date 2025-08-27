@@ -395,7 +395,7 @@ impl TestVectorResult {
             name = self.name,
             status = status
         );
-        println!("{}", "-".repeat(60));
+        println!("{separator}", separator = "-".repeat(60));
 
         for validation in &self.validations {
             let symbol = if validation.passed {
@@ -410,13 +410,13 @@ impl TestVectorResult {
                 .unwrap_or_else(|| "N/A".to_string());
 
             println!(
-                "{} Blocks: {}, Prob: {:.2}, Expected: {:.4}, Actual: {}, {}",
-                symbol,
-                validation.blocks,
-                validation.probability,
-                validation.expected,
-                actual_str,
-                validation.message
+                "{symbol} Blocks: {blocks}, Prob: {prob:.2}, Expected: {expected:.4}, Actual: {actual}, {message}",
+                symbol = symbol,
+                blocks = validation.blocks,
+                prob = validation.probability,
+                expected = validation.expected,
+                actual = actual_str,
+                message = validation.message
             );
         }
     }
