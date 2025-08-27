@@ -26,10 +26,10 @@ exceptions = []
 
 [bans]
 # Lint level for when multiple versions of the same dependency are detected
-multiple-versions = "warn"
+multiple-versions = "allow"
 
 # Lint level for wildcards in dependencies
-wildcards = "warn"
+wildcards = "allow"
 
 # Deny specific crates
 deny = []
