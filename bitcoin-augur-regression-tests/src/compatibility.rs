@@ -357,9 +357,9 @@ impl TestResults {
             message: message.to_string(),
         });
         println!(
-            "{} {name}: {message}",
-            "✓".green(),
-            message = message.dimmed()
+            "{symbol} {name}: {msg}",
+            symbol = "✓".green(),
+            msg = message.dimmed()
         );
     }
 
@@ -368,7 +368,11 @@ impl TestResults {
             name: name.to_string(),
             message: message.to_string(),
         });
-        println!("{} {name}: {message}", "✗".red(), message = message.red());
+        println!(
+            "{symbol} {name}: {msg}",
+            symbol = "✗".red(),
+            msg = message.red()
+        );
     }
 
     pub fn add_warning(&mut self, name: &str, message: &str) {
@@ -377,9 +381,9 @@ impl TestResults {
             message: message.to_string(),
         });
         println!(
-            "{} {name}: {message}",
-            "⚠".yellow(),
-            message = message.yellow()
+            "{symbol} {name}: {msg}",
+            symbol = "⚠".yellow(),
+            msg = message.yellow()
         );
     }
 
@@ -391,28 +395,31 @@ impl TestResults {
         println!("{separator}", separator = "=".repeat(60));
 
         println!(
-            "Passed:   {} {}",
-            self.passed.len().to_string().green(),
-            "✓".green()
+            "Passed:   {count} {symbol}",
+            count = self.passed.len().to_string().green(),
+            symbol = "✓".green()
         );
 
         if !self.warnings.is_empty() {
             println!(
-                "Warnings: {} {}",
-                self.warnings.len().to_string().yellow(),
-                "⚠".yellow()
+                "Warnings: {count} {symbol}",
+                count = self.warnings.len().to_string().yellow(),
+                symbol = "⚠".yellow()
             );
         }
 
         if !self.failed.is_empty() {
             println!(
-                "Failed:   {} {}",
-                self.failed.len().to_string().red(),
-                "✗".red()
+                "Failed:   {count} {symbol}",
+                count = self.failed.len().to_string().red(),
+                symbol = "✗".red()
             );
         }
 
-        println!("Duration: {:.2}s", duration.as_secs_f64());
+        println!(
+            "Duration: {duration:.2}s",
+            duration = duration.as_secs_f64()
+        );
         println!("{separator}", separator = "=".repeat(60));
 
         if !self.failed.is_empty() {
