@@ -20,8 +20,8 @@ allow = [
 ]
 
 # Exceptions for specific crates
+# Many Unicode-related crates use Unicode-3.0 which isn't recognized by cargo-deny 0.14.x
 exceptions = [
-    # ICU crates use Unicode-3.0 which isn't recognized by cargo-deny 0.14.x
     { allow = ["Unicode-3.0"], name = "icu_collections" },
     { allow = ["Unicode-3.0"], name = "icu_locale_core" },
     { allow = ["Unicode-3.0"], name = "icu_normalizer" },
@@ -30,6 +30,16 @@ exceptions = [
     { allow = ["Unicode-3.0"], name = "icu_properties_data" },
     { allow = ["Unicode-3.0"], name = "icu_provider" },
     { allow = ["Unicode-3.0"], name = "icu_provider_macros" },
+    { allow = ["Unicode-3.0"], name = "litemap" },
+    { allow = ["Unicode-3.0"], name = "potential_utf" },
+    { allow = ["Unicode-3.0"], name = "tinystr" },
+    { allow = ["Unicode-3.0"], name = "writeable" },
+    { allow = ["Unicode-3.0"], name = "yoke" },
+    { allow = ["Unicode-3.0"], name = "yoke-derive" },
+    { allow = ["Unicode-3.0"], name = "zerofrom" },
+    { allow = ["Unicode-3.0"], name = "zerofrom-derive" },
+    { allow = ["(MIT OR Apache-2.0) AND Unicode-3.0"], name = "unicode-ident" },
+    { allow = ["CDLA-Permissive-2.0"], name = "webpki-roots" },
 ]
 
 [bans]
