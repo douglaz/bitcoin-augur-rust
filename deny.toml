@@ -38,7 +38,8 @@ exceptions = [
     { allow = ["Unicode-3.0"], name = "yoke-derive" },
     { allow = ["Unicode-3.0"], name = "zerofrom" },
     { allow = ["Unicode-3.0"], name = "zerofrom-derive" },
-    { allow = ["(MIT OR Apache-2.0) AND Unicode-3.0"], name = "unicode-ident" },
+    # unicode-ident has dual license MIT/Apache-2.0 AND Unicode-3.0
+    { allow = ["MIT", "Apache-2.0", "Unicode-3.0"], name = "unicode-ident" },
     { allow = ["CDLA-Permissive-2.0"], name = "webpki-roots" },
 ]
 
