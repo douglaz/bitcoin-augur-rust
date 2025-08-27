@@ -9,6 +9,7 @@ pub struct AppConfig {
     pub bitcoin_rpc: BitcoinRpcConfig,
     pub persistence: PersistenceConfig,
     pub collector: CollectorConfig,
+    pub test_mode: TestModeConfig,
 }
 
 /// HTTP server configuration
@@ -81,6 +82,24 @@ impl Default for CollectorConfig {
     }
 }
 
+/// Test mode configuration
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct TestModeConfig {
+    /// Enable test mode (bypasses Bitcoin RPC)
+    pub enabled: bool,
+    /// Use mock data instead of real Bitcoin data
+    pub use_mock_data: bool,
+}
+
+impl Default for TestModeConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            use_mock_data: false,
+        }
+    }
+}
+
 impl AppConfig {
     /// Load configuration from file and environment variables
     pub fn load() -> Result<Self, ConfigError> {
@@ -93,7 +112,9 @@ impl AppConfig {
             .set_default("bitcoin_rpc.password", "")?
             .set_default("persistence.data_directory", "mempool_data")?
             .set_default("persistence.cleanup_days", 30)?
-            .set_default("collector.interval_ms", 30000)?;
+            .set_default("collector.interval_ms", 30000)?
+            .set_default("test_mode.enabled", false)?
+            .set_default("test_mode.use_mock_data", false)?;
 
         // Load from config file if specified via environment variable
         if let Ok(config_file) = std::env::var("AUGUR_CONFIG_FILE") {

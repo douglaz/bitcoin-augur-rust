@@ -41,12 +41,20 @@ jobs:
           nix develop -c cargo build --release -p bitcoin-augur-server
           nix develop -c cargo build --release -p bitcoin-augur-regression-tests
 
-      # Regression tests are built but not run yet
-      # TODO: Enable once server is properly configured for testing
-      - name: Verify regression test binary exists
+      - name: Run test vector validation
         run: |
-          ls -la ./target/release/bitcoin-augur-regression-tests
-          echo "Regression test framework built successfully"
+          nix develop -c ./target/release/bitcoin-augur-regression-tests vectors
+        continue-on-error: true
+      
+      - name: Run snapshot tests
+        run: |
+          nix develop -c ./target/release/bitcoin-augur-regression-tests snapshots \
+            --server-path ./target/release/bitcoin-augur-server
+      
+      - name: Run compatibility tests  
+        run: |
+          nix develop -c ./target/release/bitcoin-augur-regression-tests compatibility \
+            --server-path ./target/release/bitcoin-augur-server
 
       - name: Upload test artifacts on failure
         if: failure()

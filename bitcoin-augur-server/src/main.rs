@@ -15,7 +15,7 @@ use tracing::{error, info, warn};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::{
-    bitcoin::BitcoinRpcClient,
+    bitcoin::{BitcoinClient, BitcoinRpcClient, MockBitcoinClient},
     config::AppConfig,
     persistence::SnapshotStore,
     server::{create_app, run_server},
@@ -68,19 +68,27 @@ async fn main() -> Result<()> {
     info!("  Bitcoin RPC: {}", config.bitcoin_rpc.url);
     info!("  Data directory: {}", config.persistence.data_directory);
     info!("  Collection interval: {}ms", config.collector.interval_ms);
+    info!("  Test mode: {}", config.test_mode.enabled);
 
-    // Initialize Bitcoin RPC client
-    let bitcoin_client = BitcoinRpcClient::new(config.to_bitcoin_rpc_config());
+    // Initialize Bitcoin RPC client (use mock if in test mode)
+    let bitcoin_client = if config.test_mode.enabled {
+        info!("Running in test mode - using mock Bitcoin client");
+        BitcoinClient::Mock(MockBitcoinClient::new())
+    } else {
+        let client = BitcoinRpcClient::new(config.to_bitcoin_rpc_config());
 
-    // Test Bitcoin connection
-    match bitcoin_client.test_connection().await {
-        Ok(_) => info!("Successfully connected to Bitcoin Core"),
-        Err(e) => {
-            error!("Failed to connect to Bitcoin Core: {}", e);
-            error!("Please ensure Bitcoin Core is running and RPC credentials are correct");
-            // Continue anyway - the collector will retry
+        // Test Bitcoin connection
+        match client.test_connection().await {
+            Ok(_) => info!("Successfully connected to Bitcoin Core"),
+            Err(e) => {
+                error!("Failed to connect to Bitcoin Core: {}", e);
+                error!("Please ensure Bitcoin Core is running and RPC credentials are correct");
+                // Continue anyway - the collector will retry
+            }
         }
-    }
+
+        BitcoinClient::Real(client)
+    };
 
     // Initialize persistence store
     let snapshot_store = SnapshotStore::new(&config.persistence.data_directory)

@@ -22,6 +22,7 @@ bitcoin-augur = { path = "../bitcoin-augur" }
 
 # Async runtime
 tokio = { workspace = true }
+async-trait = "0.1"
 
 # Web framework
 axum = { workspace = true }

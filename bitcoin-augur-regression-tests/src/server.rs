@@ -48,6 +48,8 @@ impl ServerManager {
                 "AUGUR_SERVER__MEMPOOL_DATA_PATH",
                 self.data_dir.join("mempool"),
             )
+            .env("AUGUR_TEST_MODE__ENABLED", "true") // Enable test mode
+            .env("AUGUR_TEST_MODE__USE_MOCK_DATA", "true") // Use mock data
             .env("RUST_LOG", "info")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())

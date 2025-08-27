@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 use tokio::time::{interval, Duration};
 use tracing::{debug, error, info, warn};
 
-use crate::bitcoin::{BitcoinRpcClient, RpcError};
+use crate::bitcoin::{BitcoinClient, BitcoinRpc, RpcError};
 use crate::persistence::{PersistenceError, SnapshotStore};
 
 /// Mempool collector errors
@@ -28,7 +28,7 @@ pub enum CollectorError {
 
 /// Service that periodically collects mempool data and calculates fee estimates
 pub struct MempoolCollector {
-    bitcoin_client: Arc<BitcoinRpcClient>,
+    bitcoin_client: Arc<BitcoinClient>,
     snapshot_store: Arc<SnapshotStore>,
     fee_estimator: Arc<FeeEstimator>,
     latest_estimate: Arc<RwLock<Option<FeeEstimate>>>,
@@ -38,7 +38,7 @@ pub struct MempoolCollector {
 impl MempoolCollector {
     /// Creates a new mempool collector
     pub fn new(
-        bitcoin_client: BitcoinRpcClient,
+        bitcoin_client: BitcoinClient,
         snapshot_store: SnapshotStore,
         fee_estimator: FeeEstimator,
     ) -> Self {
