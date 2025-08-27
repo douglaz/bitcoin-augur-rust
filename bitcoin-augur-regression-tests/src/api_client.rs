@@ -187,10 +187,7 @@ impl ResponseComparator {
         let keys2: Vec<_> = resp2.estimates.keys().cloned().collect();
 
         if keys1 != keys2 {
-            differences.push(format!(
-                "Block targets mismatch: {:?} vs {:?}",
-                keys1, keys2
-            ));
+            differences.push(format!("Block targets mismatch: {keys1:?} vs {keys2:?}"));
         }
 
         // Compare each target
