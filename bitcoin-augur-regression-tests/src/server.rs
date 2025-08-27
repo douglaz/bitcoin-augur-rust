@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{bail, ensure, Context, Result};
 use std::path::PathBuf;
 use std::process::Stdio;
 use std::time::Duration;
@@ -27,9 +27,7 @@ impl ServerManager {
 
     /// Start the server process
     pub async fn start(&mut self) -> Result<()> {
-        if self.process.is_some() {
-            return Err(anyhow!("Server is already running"));
-        }
+        ensure!(self.process.is_none(), "Server is already running");
 
         info!(
             "Starting bitcoin-augur-server on port {port}",
@@ -103,7 +101,7 @@ impl ServerManager {
         let start = std::time::Instant::now();
         loop {
             if start.elapsed() > max_wait {
-                return Err(anyhow!("Server failed to start within {:?}", max_wait));
+                bail!("Server failed to start within {max_wait:?}");
             }
 
             match timeout(Duration::from_secs(1), reqwest::get(&url)).await {
@@ -186,9 +184,10 @@ impl ReferenceServerManager {
 
     /// Start the reference server
     pub async fn start(&mut self) -> Result<()> {
-        if self.process.is_some() {
-            return Err(anyhow!("Reference server is already running"));
-        }
+        ensure!(
+            self.process.is_none(),
+            "Reference server is already running"
+        );
 
         info!("Starting reference server on port {port}", port = self.port);
 
@@ -242,10 +241,7 @@ impl ReferenceServerManager {
         let start = std::time::Instant::now();
         loop {
             if start.elapsed() > max_wait {
-                return Err(anyhow!(
-                    "Reference server failed to start within {:?}",
-                    max_wait
-                ));
+                bail!("Reference server failed to start within {max_wait:?}");
             }
 
             match timeout(Duration::from_secs(2), reqwest::get(&url)).await {

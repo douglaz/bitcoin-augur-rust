@@ -232,31 +232,35 @@ impl SnapshotTestResults {
 
     pub fn add_fail(&mut self, name: &str, reason: &str) {
         self.failed.push((name.to_string(), reason.to_string()));
-        debug!("Snapshot test failed: {} - {}", name, reason);
+        debug!("Snapshot test failed: {name} - {reason}");
     }
 
     pub fn print_summary(&self) {
         use colored::Colorize;
 
-        println!("\n{}", "Snapshot Test Results".bold());
-        println!("{}", "=".repeat(50));
+        println!("\n{title}", title = "Snapshot Test Results".bold());
+        println!("{separator}", separator = "=".repeat(50));
 
         println!(
-            "Passed: {} {}",
-            self.passed.len().to_string().green(),
-            "✓".green()
+            "Passed: {count} {symbol}",
+            count = self.passed.len().to_string().green(),
+            symbol = "✓".green()
         );
 
         if !self.failed.is_empty() {
             println!(
-                "Failed: {} {}",
-                self.failed.len().to_string().red(),
-                "✗".red()
+                "Failed: {count} {symbol}",
+                count = self.failed.len().to_string().red(),
+                symbol = "✗".red()
             );
 
             println!("\nFailed tests:");
             for (name, reason) in &self.failed {
-                println!("  {} {}: {}", "✗".red(), name, reason.dimmed());
+                println!(
+                    "  {symbol} {name}: {reason}",
+                    symbol = "✗".red(),
+                    reason = reason.dimmed()
+                );
             }
         }
     }

@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{bail, Context, Result};
 use colored::Colorize;
 use futures::future::join_all;
 use std::path::PathBuf;
@@ -70,7 +70,7 @@ impl TestRunner {
         for path_str in candidates {
             let path = PathBuf::from(path_str);
             if path.exists() && path.is_file() {
-                info!("Found server binary at {:?}", path);
+                info!("Found server binary at {path:?}");
                 return Ok(Some(path.canonicalize()?));
             }
         }
@@ -152,7 +152,7 @@ impl TestRunner {
             println!("\n{message}");
             Ok(())
         } else {
-            Err(anyhow!("Some tests failed"))
+            bail!("Some tests failed")
         }
     }
 
@@ -164,7 +164,7 @@ impl TestRunner {
                 let port = self.get_available_port().await?;
                 self.start_server(server_path.clone(), port).await?;
             } else {
-                return Err(anyhow!("No server binary available"));
+                bail!("No server binary available");
             }
         }
 
@@ -172,7 +172,7 @@ impl TestRunner {
             .server_manager
             .as_ref()
             .map(|m| m.url())
-            .ok_or_else(|| anyhow!("Rust server not running"))?;
+            .context("Rust server not running")?;
 
         let reference_url = if with_reference {
             if let Some(ref jar_path) = self.reference_jar {
@@ -182,7 +182,7 @@ impl TestRunner {
                     self.reference_manager
                         .as_ref()
                         .map(|m| m.url())
-                        .ok_or_else(|| anyhow!("Reference server not running"))?,
+                        .context("Reference server not running")?,
                 )
             } else {
                 warn!("Reference JAR not provided, skipping cross-implementation tests");
@@ -196,7 +196,7 @@ impl TestRunner {
         let results = compat_tests.run_all().await?;
 
         if !results.all_passed() {
-            return Err(anyhow!("Compatibility tests failed"));
+            bail!("Compatibility tests failed");
         }
 
         Ok(())
@@ -210,7 +210,7 @@ impl TestRunner {
                 let port = self.get_available_port().await?;
                 self.start_server(server_path.clone(), port).await?;
             } else {
-                return Err(anyhow!("No server binary available"));
+                bail!("No server binary available");
             }
         }
 
@@ -218,13 +218,13 @@ impl TestRunner {
             .server_manager
             .as_ref()
             .map(|m| m.url())
-            .ok_or_else(|| anyhow!("Server not running"))?;
+            .context("Server not running")?;
 
         let tester = SnapshotTester::new(self.update_snapshots || force_update);
         let results = tester.run_tests(&server_url).await?;
 
         if !results.all_passed() {
-            return Err(anyhow!("Snapshot tests failed"));
+            bail!("Snapshot tests failed");
         }
 
         Ok(())
@@ -233,7 +233,7 @@ impl TestRunner {
     /// Run test vector validation
     pub async fn run_vector_tests(&mut self, vectors_file: Option<PathBuf>) -> Result<()> {
         let vectors = if let Some(path) = vectors_file {
-            info!("Loading test vectors from {:?}", path);
+            info!("Loading test vectors from {path:?}");
             TestVectorRunner::load_vectors(&path).await?
         } else {
             info!("Using default test vectors");
@@ -285,7 +285,7 @@ impl TestRunner {
         }
 
         if !all_passed {
-            return Err(anyhow!("Some test vectors failed"));
+            bail!("Some test vectors failed");
         }
 
         Ok(())
@@ -303,13 +303,13 @@ impl TestRunner {
         let json = serde_json::to_string_pretty(&test_cases)?;
         tokio::fs::create_dir_all(&output).await?;
         tokio::fs::write(&test_cases_path, json).await?;
-        info!("Saved test cases to {:?}", test_cases_path);
+        info!("Saved test cases to {test_cases_path:?}");
 
         // Generate test vectors
         let vectors = TestVectorRunner::generate_default_vectors();
         let vectors_path = output.join("test_vectors.json");
         TestVectorRunner::save_vectors(&vectors, &vectors_path).await?;
-        info!("Saved test vectors to {:?}", vectors_path);
+        info!("Saved test vectors to {vectors_path:?}");
 
         let message = format!(
             "Generated {count} test cases and {vec_count} test vectors",
@@ -338,8 +338,11 @@ impl TestRunner {
         let (status2, body2) = client2.get_raw(path).await?;
 
         if status1 != status2 {
-            println!("{} Status codes differ: {status1} vs {status2}", "✗".red());
-            return Err(anyhow!("Status codes differ"));
+            println!(
+                "{symbol} Status codes differ: {status1} vs {status2}",
+                symbol = "✗".red()
+            );
+            bail!("Status codes differ");
         }
 
         let differences = crate::api_client::ResponseComparator::compare_json(&body1, &body2, "");

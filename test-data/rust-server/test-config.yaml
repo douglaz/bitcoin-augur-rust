@@ -1,0 +1,18 @@
+# Test configuration for bitcoin-augur-server
+server:
+  port: 36759
+  host: "127.0.0.1"
+
+mempool:
+  refresh_interval_secs: 5
+  data_path: "test-data/rust-server/mempool"
+  max_snapshots: 100
+
+bitcoin:
+  rpc_url: "http://localhost:38332"
+  rpc_user: "test"
+  rpc_password: "test"
+
+logging:
+  level: "info"
+  format: "json"

@@ -419,8 +419,8 @@ impl TestResults {
             println!("\nFailed tests:");
             for test in &self.failed {
                 println!(
-                    "  {} - {name}: {message}",
-                    "✗".red(),
+                    "  {symbol} - {name}: {message}",
+                    symbol = "✗".red(),
                     name = test.name,
                     message = test.message
                 );
