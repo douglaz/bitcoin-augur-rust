@@ -138,6 +138,20 @@ impl AppConfig {
             builder = builder.set_override("bitcoin_rpc.url", url)?;
         }
 
+        // Support test mode environment variables
+        if let Ok(enabled) = std::env::var("AUGUR_TEST_MODE_ENABLED") {
+            builder = builder.set_override(
+                "test_mode.enabled",
+                enabled.parse::<bool>().unwrap_or(false),
+            )?;
+        }
+        if let Ok(use_mock) = std::env::var("AUGUR_TEST_MODE_USE_MOCK_DATA") {
+            builder = builder.set_override(
+                "test_mode.use_mock_data",
+                use_mock.parse::<bool>().unwrap_or(false),
+            )?;
+        }
+
         builder.build()?.try_deserialize()
     }
 

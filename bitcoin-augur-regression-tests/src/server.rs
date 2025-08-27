@@ -42,14 +42,14 @@ impl ServerManager {
 
         // Start the server process
         let mut cmd = Command::new(&self.binary_path);
-        cmd.env("AUGUR_SERVER__CONFIG", &config_path)
-            .env("AUGUR_SERVER__PORT", self.port.to_string())
+        cmd.env("AUGUR_SERVER_CONFIG", &config_path)
+            .env("AUGUR_SERVER_PORT", self.port.to_string())
             .env(
-                "AUGUR_SERVER__MEMPOOL_DATA_PATH",
+                "AUGUR_PERSISTENCE_DATA_DIRECTORY",
                 self.data_dir.join("mempool"),
             )
-            .env("AUGUR_TEST_MODE__ENABLED", "true") // Enable test mode
-            .env("AUGUR_TEST_MODE__USE_MOCK_DATA", "true") // Use mock data
+            .env("AUGUR_TEST_MODE_ENABLED", "true") // Enable test mode
+            .env("AUGUR_TEST_MODE_USE_MOCK_DATA", "true") // Use mock data
             .env("RUST_LOG", "info")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
