@@ -121,15 +121,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Install cargo-deny
-        run: |
-          wget https://github.com/EmbarkStudios/cargo-deny/releases/download/0.14.24/cargo-deny-0.14.24-x86_64-unknown-linux-musl.tar.gz
-          tar -xzf cargo-deny-0.14.24-x86_64-unknown-linux-musl.tar.gz
-          mv cargo-deny-0.14.24-x86_64-unknown-linux-musl/cargo-deny ./cargo-deny
-          chmod +x ./cargo-deny
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
       
-      - name: Check dependencies
-        run: ./cargo-deny check
+      - name: Check dependencies with cargo-deny
+        run: nix develop -c cargo deny check
 
   integration-tests:
     name: Integration Tests

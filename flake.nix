@@ -34,6 +34,7 @@
             cargo-edit
             cargo-watch
             cargo-audit
+            cargo-deny
             cargo-outdated
             cargo-tarpaulin
             git

@@ -13,6 +13,7 @@ allow = [
     "BSD-3-Clause",
     "ISC",
     "Unicode-DFS-2016",
+    "Unicode-3.0",  # Used by ICU and related crates
     "CC0-1.0",
     "Zlib",
     "OpenSSL",
@@ -20,30 +21,9 @@ allow = [
 ]
 
 # Exceptions for specific crates
-# Many Unicode-related crates use Unicode-3.0 which isn't recognized by cargo-deny 0.14.x
 exceptions = [
-    { allow = ["Unicode-3.0"], name = "icu_collections" },
-    { allow = ["Unicode-3.0"], name = "icu_locale_core" },
-    { allow = ["Unicode-3.0"], name = "icu_normalizer" },
-    { allow = ["Unicode-3.0"], name = "icu_normalizer_data" },
-    { allow = ["Unicode-3.0"], name = "icu_properties" },
-    { allow = ["Unicode-3.0"], name = "icu_properties_data" },
-    { allow = ["Unicode-3.0"], name = "icu_provider" },
-    { allow = ["Unicode-3.0"], name = "icu_provider_macros" },
-    { allow = ["Unicode-3.0"], name = "litemap" },
-    { allow = ["Unicode-3.0"], name = "potential_utf" },
-    { allow = ["Unicode-3.0"], name = "tinystr" },
-    { allow = ["Unicode-3.0"], name = "writeable" },
-    { allow = ["Unicode-3.0"], name = "yoke" },
-    { allow = ["Unicode-3.0"], name = "yoke-derive" },
-    { allow = ["Unicode-3.0"], name = "zerofrom" },
-    { allow = ["Unicode-3.0"], name = "zerofrom-derive" },
-    # unicode-ident has dual license MIT/Apache-2.0 AND Unicode-3.0
-    { allow = ["MIT", "Apache-2.0", "Unicode-3.0"], name = "unicode-ident" },
+    # webpki-roots uses a specific license
     { allow = ["CDLA-Permissive-2.0"], name = "webpki-roots" },
-    { allow = ["Unicode-3.0"], name = "zerotrie" },
-    { allow = ["Unicode-3.0"], name = "zerovec" },
-    { allow = ["Unicode-3.0"], name = "zerovec-derive" },
 ]
 
 [bans]
