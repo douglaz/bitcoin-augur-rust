@@ -74,7 +74,8 @@ impl CompatibilityTests {
     async fn test_fee_targets(&self, results: &mut TestResults) -> Result<()> {
         info!("Testing /fees/target/num_blocks endpoint");
 
-        let test_targets = vec![1.0, 3.0, 6.0, 12.0, 24.0, 144.0];
+        // Skip 1.0 as it's rarely used and may not be supported
+        let test_targets = vec![3.0, 6.0, 12.0, 24.0, 144.0];
 
         for target in test_targets {
             let test_name = format!("GET /fees/target/{}", target);

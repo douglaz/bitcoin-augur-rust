@@ -1,0 +1,28 @@
+---
+source: bitcoin-augur-regression-tests/src/snapshots.rs
+expression: value
+---
+{
+  "estimates": {
+    "6": {
+      "probabilities": {
+        "0.05": {
+          "fee_rate": 1.0
+        },
+        "0.20": {
+          "fee_rate": 1.0
+        },
+        "0.50": {
+          "fee_rate": 1.0
+        },
+        "0.80": {
+          "fee_rate": 1.0
+        },
+        "0.95": {
+          "fee_rate": 1.0
+        }
+      }
+    }
+  },
+  "mempool_update_time": "[timestamp]"
+}

@@ -1,0 +1,219 @@
+---
+source: bitcoin-augur-regression-tests/src/snapshots.rs
+assertion_line: 48
+expression: value
+---
+{
+  "estimates": {
+    "12": {
+      "probabilities": {
+        "0.05": {
+          "fee_rate": 1.0
+        },
+        "0.20": {
+          "fee_rate": 1.0
+        },
+        "0.50": {
+          "fee_rate": 1.0
+        },
+        "0.80": {
+          "fee_rate": 1.0
+        },
+        "0.95": {
+          "fee_rate": 1.0
+        }
+      }
+    },
+    "144": {
+      "probabilities": {
+        "0.05": {
+          "fee_rate": 1.0
+        },
+        "0.20": {
+          "fee_rate": 1.0
+        },
+        "0.50": {
+          "fee_rate": 1.0
+        },
+        "0.80": {
+          "fee_rate": 1.0
+        },
+        "0.95": {
+          "fee_rate": 1.0
+        }
+      }
+    },
+    "18": {
+      "probabilities": {
+        "0.05": {
+          "fee_rate": 1.0
+        },
+        "0.20": {
+          "fee_rate": 1.0
+        },
+        "0.50": {
+          "fee_rate": 1.0
+        },
+        "0.80": {
+          "fee_rate": 1.0
+        },
+        "0.95": {
+          "fee_rate": 1.0
+        }
+      }
+    },
+    "24": {
+      "probabilities": {
+        "0.05": {
+          "fee_rate": 1.0
+        },
+        "0.20": {
+          "fee_rate": 1.0
+        },
+        "0.50": {
+          "fee_rate": 1.0
+        },
+        "0.80": {
+          "fee_rate": 1.0
+        },
+        "0.95": {
+          "fee_rate": 1.0
+        }
+      }
+    },
+    "3": {
+      "probabilities": {
+        "0.05": {
+          "fee_rate": 1.0
+        },
+        "0.20": {
+          "fee_rate": 1.0
+        },
+        "0.50": {
+          "fee_rate": 1.0
+        },
+        "0.80": {
+          "fee_rate": 1.0
+        },
+        "0.95": {
+          "fee_rate": 1.0
+        }
+      }
+    },
+    "36": {
+      "probabilities": {
+        "0.05": {
+          "fee_rate": 1.0
+        },
+        "0.20": {
+          "fee_rate": 1.0
+        },
+        "0.50": {
+          "fee_rate": 1.0
+        },
+        "0.80": {
+          "fee_rate": 1.0
+        },
+        "0.95": {
+          "fee_rate": 1.0
+        }
+      }
+    },
+    "48": {
+      "probabilities": {
+        "0.05": {
+          "fee_rate": 1.0
+        },
+        "0.20": {
+          "fee_rate": 1.0
+        },
+        "0.50": {
+          "fee_rate": 1.0
+        },
+        "0.80": {
+          "fee_rate": 1.0
+        },
+        "0.95": {
+          "fee_rate": 1.0
+        }
+      }
+    },
+    "6": {
+      "probabilities": {
+        "0.05": {
+          "fee_rate": 1.0
+        },
+        "0.20": {
+          "fee_rate": 1.0
+        },
+        "0.50": {
+          "fee_rate": 1.0
+        },
+        "0.80": {
+          "fee_rate": 1.0
+        },
+        "0.95": {
+          "fee_rate": 1.0
+        }
+      }
+    },
+    "72": {
+      "probabilities": {
+        "0.05": {
+          "fee_rate": 1.0
+        },
+        "0.20": {
+          "fee_rate": 1.0
+        },
+        "0.50": {
+          "fee_rate": 1.0
+        },
+        "0.80": {
+          "fee_rate": 1.0
+        },
+        "0.95": {
+          "fee_rate": 1.0
+        }
+      }
+    },
+    "9": {
+      "probabilities": {
+        "0.05": {
+          "fee_rate": 1.0
+        },
+        "0.20": {
+          "fee_rate": 1.0
+        },
+        "0.50": {
+          "fee_rate": 1.0
+        },
+        "0.80": {
+          "fee_rate": 1.0
+        },
+        "0.95": {
+          "fee_rate": 1.0
+        }
+      }
+    },
+    "96": {
+      "probabilities": {
+        "0.05": {
+          "fee_rate": 1.0
+        },
+        "0.20": {
+          "fee_rate": 1.0
+        },
+        "0.50": {
+          "fee_rate": 1.0
+        },
+        "0.80": {
+          "fee_rate": 1.0
+        },
+        "0.95": {
+          "fee_rate": 1.0
+        }
+      }
+    }
+  },
+  "mempool_update_time": "[timestamp]"
+}

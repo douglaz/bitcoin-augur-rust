@@ -397,12 +397,11 @@ impl TestRunner {
 
 impl Drop for TestRunner {
     fn drop(&mut self) {
-        // Ensure servers are stopped
-        if let Some(mut manager) = self.server_manager.take() {
-            let _ = tokio::runtime::Runtime::new().map(|rt| rt.block_on(manager.stop()));
-        }
-        if let Some(mut manager) = self.reference_manager.take() {
-            let _ = tokio::runtime::Runtime::new().map(|rt| rt.block_on(manager.stop()));
-        }
+        // The drop handlers in ServerManager and ReferenceServerManager
+        // will kill the processes synchronously, so we don't need to do
+        // anything async here.
+        // Just let the managers drop naturally which will stop the processes.
+        let _ = self.server_manager.take();
+        let _ = self.reference_manager.take();
     }
 }
