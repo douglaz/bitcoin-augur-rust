@@ -224,8 +224,7 @@ impl ResponseComparator {
 
                 if diff > tolerance {
                     differences.push(format!(
-                        "Block {block_num} probability {prob} fee rate mismatch: {fee1:.4} vs {fee2:.4}",
-                        prob = prob_str,
+                        "Block {block_num} probability {prob_str} fee rate mismatch: {fee1:.4} vs {fee2:.4}",
                         fee1 = prob1.fee_rate,
                         fee2 = prob2.fee_rate
                     ));

@@ -386,9 +386,9 @@ impl TestResults {
     pub fn print_summary(&self) {
         let duration = self.start_time.elapsed();
 
-        println!("\n{}", "=".repeat(60));
+        println!("\n{separator}", separator = "=".repeat(60));
         println!("Test Summary");
-        println!("{}", "=".repeat(60));
+        println!("{separator}", separator = "=".repeat(60));
 
         println!(
             "Passed:   {} {}",
@@ -413,7 +413,7 @@ impl TestResults {
         }
 
         println!("Duration: {:.2}s", duration.as_secs_f64());
-        println!("{}", "=".repeat(60));
+        println!("{separator}", separator = "=".repeat(60));
 
         if !self.failed.is_empty() {
             println!("\nFailed tests:");
