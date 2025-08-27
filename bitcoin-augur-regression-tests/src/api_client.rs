@@ -149,7 +149,7 @@ pub struct BlockTarget {
 impl BlockTarget {
     /// Get fee rate for specific probability
     pub fn get_fee_rate(&self, probability: f64) -> Option<f64> {
-        let key = format!("{:.2}", probability);
+        let key = format!("{probability:.2}");
         self.probabilities.get(&key).map(|p| p.fee_rate)
     }
 }
