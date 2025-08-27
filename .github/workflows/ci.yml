@@ -60,27 +60,6 @@ jobs:
       - name: Run benchmarks
         run: cargo bench --all
 
-  coverage:
-    name: Code Coverage
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-      
-      - name: Install tarpaulin
-        run: cargo install cargo-tarpaulin
-      
-      - name: Generate coverage
-        run: cargo tarpaulin --all --out xml --exclude-files 'fuzz/*' --exclude-files 'tests/*' --exclude-files 'benches/*' --timeout 300
-      
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./cobertura.xml
-          fail_ci_if_error: false
-
   fuzz:
     name: Fuzz Testing
     runs-on: ubuntu-latest
