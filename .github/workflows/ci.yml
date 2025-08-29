@@ -138,7 +138,7 @@ jobs:
           BITCOIN_RPC_URL: http://localhost:8332
           BITCOIN_RPC_USER: test
           BITCOIN_RPC_PASSWORD: test
-        run: cargo test --package bitcoin-augur-integration-tests
+        run: cargo test --package bitcoin-augur-server api_integration_test
       
       - name: Stop Bitcoin Core
         if: always()
@@ -154,4 +154,4 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       
       - name: Run stress tests
-        run: cargo test --package bitcoin-augur stress_test -- --test-threads=1 --nocapture
+        run: cargo test --package bitcoin-augur-regression-tests stress -- --test-threads=1 --nocapture

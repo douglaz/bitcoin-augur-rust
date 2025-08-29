@@ -294,38 +294,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitcoin-augur-integration-tests"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "axum",
- "bitcoin-augur",
- "chrono",
- "clap",
- "colored 2.2.0",
- "float-cmp",
- "futures",
- "ordered-float",
- "rand 0.8.5",
- "reqwest",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "which",
-]
-
-[[package]]
 name = "bitcoin-augur-regression-tests"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "assert-json-diff",
  "async-trait",
+ "axum",
  "bitcoin-augur",
  "chrono",
  "clap",

@@ -5,9 +5,11 @@ use tracing_subscriber::EnvFilter;
 
 mod api_client;
 mod compatibility;
+mod mock_rpc;
 mod runner;
 mod server;
 mod snapshots;
+mod stress;
 mod test_cases;
 mod test_vectors;
 
