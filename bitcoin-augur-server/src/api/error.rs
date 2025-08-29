@@ -41,9 +41,7 @@ impl From<crate::service::CollectorError> for ApiError {
             CollectorError::EstimationError(augur_err) => {
                 match augur_err {
                     // Invalid parameters are client errors (400)
-                    bitcoin_augur::AugurError::InvalidParameter(msg) => {
-                        ApiError::BadRequest(msg)
-                    }
+                    bitcoin_augur::AugurError::InvalidParameter(msg) => ApiError::BadRequest(msg),
                     // Insufficient data is a temporary issue (503)
                     bitcoin_augur::AugurError::InsufficientData(msg) => {
                         ApiError::ServiceUnavailable(msg)
