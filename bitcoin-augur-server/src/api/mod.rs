@@ -1,8 +1,10 @@
 //! HTTP API endpoints for fee estimation service
 
+mod error;
 mod fee_endpoint;
 mod historical;
 mod models;
 
+pub use error::ApiError;
 pub use fee_endpoint::{get_fee_for_target, get_fees};
 pub use historical::get_historical_fee;
