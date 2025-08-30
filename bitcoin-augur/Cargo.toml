@@ -21,7 +21,7 @@ statrs = { workspace = true }
 [dev-dependencies]
 proptest = { workspace = true }
 criterion = { workspace = true }
-rand = "0.8"
+rand = "0.9"
 
 [[bench]]
 name = "fee_estimation_bench"
