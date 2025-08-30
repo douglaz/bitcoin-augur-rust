@@ -7,7 +7,7 @@ use axum::{
 use std::sync::Arc;
 use tracing::{debug, info, warn};
 
-use super::error::ApiError;
+use super::error::{ApiError, ErrorResponse};
 use super::models::transform_fee_estimate;
 use crate::service::MempoolCollector;
 
@@ -26,11 +26,11 @@ pub async fn get_fees(State(collector): State<Arc<MempoolCollector>>) -> Respons
         }
         None => {
             warn!("No fee estimates available yet");
-            (
-                StatusCode::SERVICE_UNAVAILABLE,
-                "No fee estimates available yet",
-            )
-                .into_response()
+            let error_response = ErrorResponse {
+                error: "service_unavailable".to_string(),
+                message: "No fee estimates available yet".to_string(),
+            };
+            (StatusCode::SERVICE_UNAVAILABLE, Json(error_response)).into_response()
         }
     }
 }

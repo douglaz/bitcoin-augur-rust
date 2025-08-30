@@ -1,8 +1,17 @@
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
+    Json,
 };
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
+
+/// JSON error response structure
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ErrorResponse {
+    pub error: String,
+    pub message: String,
+}
 
 /// API-specific error types with proper HTTP status code mapping
 #[derive(Error, Debug)]
@@ -22,13 +31,22 @@ pub enum ApiError {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        let (status, message) = match self {
-            ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
-            ApiError::ServiceUnavailable(msg) => (StatusCode::SERVICE_UNAVAILABLE, msg),
-            ApiError::InternalError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+        let (status, error_type, message) = match self {
+            ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, "bad_request", msg),
+            ApiError::ServiceUnavailable(msg) => {
+                (StatusCode::SERVICE_UNAVAILABLE, "service_unavailable", msg)
+            }
+            ApiError::InternalError(msg) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "internal_error", msg)
+            }
         };
 
-        (status, message).into_response()
+        let body = Json(ErrorResponse {
+            error: error_type.to_string(),
+            message,
+        });
+
+        (status, body).into_response()
     }
 }
 

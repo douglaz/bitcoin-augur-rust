@@ -8,6 +8,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use tracing::{debug, info, warn};
 
+use super::error::ErrorResponse;
 use super::models::transform_fee_estimate;
 use crate::service::MempoolCollector;
 
@@ -35,7 +36,14 @@ pub async fn get_historical_fee(
             "Timestamp {timestamp} is in the future",
             timestamp = params.timestamp
         );
-        return (StatusCode::BAD_REQUEST, "Timestamp cannot be in the future").into_response();
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "bad_request".to_string(),
+                message: "Timestamp cannot be in the future".to_string(),
+            }),
+        )
+            .into_response();
     }
 
     // Don't allow timestamps more than 1 year in the past
@@ -47,7 +55,10 @@ pub async fn get_historical_fee(
         );
         return (
             StatusCode::BAD_REQUEST,
-            "Timestamp is too far in the past (max 1 year)",
+            Json(ErrorResponse {
+                error: "bad_request".to_string(),
+                message: "Timestamp is too far in the past (max 1 year)".to_string(),
+            }),
         )
             .into_response();
     }
@@ -62,7 +73,11 @@ pub async fn get_historical_fee(
                 );
                 (
                     StatusCode::NOT_FOUND,
-                    "No historical data available for the requested timestamp",
+                    Json(ErrorResponse {
+                        error: "not_found".to_string(),
+                        message: "No historical data available for the requested timestamp"
+                            .to_string(),
+                    }),
                 )
                     .into_response()
             } else {
@@ -79,17 +94,31 @@ pub async fn get_historical_fee(
 
             // Check error type for appropriate response
             if err.to_string().contains("InvalidTimestamp") {
-                (StatusCode::BAD_REQUEST, "Invalid timestamp format").into_response()
+                (
+                    StatusCode::BAD_REQUEST,
+                    Json(ErrorResponse {
+                        error: "bad_request".to_string(),
+                        message: "Invalid timestamp format".to_string(),
+                    }),
+                )
+                    .into_response()
             } else if err.to_string().contains("Insufficient") {
                 (
                     StatusCode::NOT_FOUND,
-                    "No historical data available for the requested timestamp",
+                    Json(ErrorResponse {
+                        error: "not_found".to_string(),
+                        message: "No historical data available for the requested timestamp"
+                            .to_string(),
+                    }),
                 )
                     .into_response()
             } else {
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to retrieve historical fee estimates",
+                    Json(ErrorResponse {
+                        error: "internal_error".to_string(),
+                        message: "Failed to retrieve historical fee estimates".to_string(),
+                    }),
                 )
                     .into_response()
             }
