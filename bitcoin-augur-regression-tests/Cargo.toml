@@ -34,7 +34,7 @@ tracing-subscriber = { workspace = true }
 # Utilities
 tempfile = "3.21"
 which = "7.0"
-colored = "2.2"
+colored = "3.0"
 chrono = { workspace = true }
 
 # For floating point comparison
