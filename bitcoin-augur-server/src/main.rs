@@ -2,6 +2,7 @@
 
 mod api;
 mod bitcoin;
+mod cli;
 mod config;
 mod persistence;
 mod server;
@@ -16,40 +17,21 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::{
     bitcoin::{BitcoinClient, BitcoinRpcClient, MockBitcoinClient},
+    cli::Cli,
     config::AppConfig,
     persistence::SnapshotStore,
     server::{create_app, run_server},
     service::MempoolCollector,
 };
 
-/// Bitcoin Augur Server CLI
-#[derive(Parser)]
-#[command(author, version, about, long_about = None)]
-struct Cli {
-    /// Initialize fee estimates from stored snapshots on startup
-    #[arg(long)]
-    init_from_store: bool,
-
-    /// Path to configuration file (can also be set via AUGUR_CONFIG_FILE env var)
-    #[arg(short, long)]
-    config: Option<String>,
-}
-
 #[tokio::main]
 async fn main() -> Result<()> {
     // Parse CLI arguments
     let cli = Cli::parse();
 
-    // Set config file if provided via CLI
-    if let Some(config_path) = cli.config {
-        std::env::set_var("AUGUR_CONFIG_FILE", config_path);
-    }
-    // Initialize tracing to stderr
+    // Initialize tracing to stderr with CLI-provided filter
     tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "bitcoin_augur_server=info,bitcoin_augur=info".into()),
-        )
+        .with(tracing_subscriber::EnvFilter::from(cli.log_filter.as_str()))
         .with(
             tracing_subscriber::fmt::layer()
                 .with_writer(std::io::stderr)
@@ -60,8 +42,8 @@ async fn main() -> Result<()> {
 
     info!("Bitcoin Augur Server starting...");
 
-    // Load configuration
-    let config = AppConfig::load().context("Failed to load configuration")?;
+    // Load configuration with CLI overrides
+    let config = AppConfig::load_with_cli(&cli).context("Failed to load configuration")?;
 
     info!("Configuration loaded:");
     info!(

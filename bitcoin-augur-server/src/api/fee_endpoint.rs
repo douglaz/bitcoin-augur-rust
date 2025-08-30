@@ -7,6 +7,7 @@ use axum::{
 use std::sync::Arc;
 use tracing::{debug, info, warn};
 
+use super::error::{ApiError, ErrorResponse};
 use super::models::transform_fee_estimate;
 use crate::service::MempoolCollector;
 
@@ -25,11 +26,11 @@ pub async fn get_fees(State(collector): State<Arc<MempoolCollector>>) -> Respons
         }
         None => {
             warn!("No fee estimates available yet");
-            (
-                StatusCode::SERVICE_UNAVAILABLE,
-                "No fee estimates available yet",
-            )
-                .into_response()
+            let error_response = ErrorResponse {
+                error: "service_unavailable".to_string(),
+                message: "No fee estimates available yet".to_string(),
+            };
+            (StatusCode::SERVICE_UNAVAILABLE, Json(error_response)).into_response()
         }
     }
 }
@@ -38,15 +39,13 @@ pub async fn get_fees(State(collector): State<Arc<MempoolCollector>>) -> Respons
 pub async fn get_fee_for_target(
     Path(num_blocks): Path<f64>,
     State(collector): State<Arc<MempoolCollector>>,
-) -> Response {
+) -> Result<Response, ApiError> {
     // Validate num_blocks parameter
     if num_blocks <= 0.0 || num_blocks > 1000.0 || !num_blocks.is_finite() {
         warn!("Invalid num_blocks parameter: {num_blocks}");
-        return (
-            StatusCode::BAD_REQUEST,
-            "Invalid or missing number of blocks",
-        )
-            .into_response();
+        return Err(ApiError::BadRequest(
+            "Invalid number of blocks: must be between 1 and 1000".to_string(),
+        ));
     }
 
     info!(
@@ -55,32 +54,11 @@ pub async fn get_fee_for_target(
     );
 
     // Get estimate for specific block target
-    match collector.get_estimate_for_blocks(num_blocks).await {
-        Ok(estimate) => {
-            let response = transform_fee_estimate(estimate);
-            debug!(
-                "Returning fee estimates with {} targets",
-                response.estimates.len()
-            );
-            Json(response).into_response()
-        }
-        Err(err) => {
-            warn!("Failed to calculate fee estimates: {err}");
-
-            // Check if it's a data availability issue
-            if err.to_string().contains("Insufficient") {
-                (
-                    StatusCode::SERVICE_UNAVAILABLE,
-                    "No fee estimates available yet",
-                )
-                    .into_response()
-            } else {
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to calculate fee estimates",
-                )
-                    .into_response()
-            }
-        }
-    }
+    let estimate = collector.get_estimate_for_blocks(num_blocks).await?;
+    let response = transform_fee_estimate(estimate);
+    debug!(
+        "Returning fee estimates with {} targets",
+        response.estimates.len()
+    );
+    Ok(Json(response).into_response())
 }

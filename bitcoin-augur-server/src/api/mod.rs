@@ -1,5 +1,6 @@
 //! HTTP API endpoints for fee estimation service
 
+mod error;
 mod fee_endpoint;
 mod historical;
 mod models;

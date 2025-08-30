@@ -1,6 +1,6 @@
 # Test configuration for bitcoin-augur-server
 server:
-  port: 36759
+  port: 46881
   host: "127.0.0.1"
 
 mempool:
