@@ -135,19 +135,37 @@ impl AppConfig {
 
         // Handle Bitcoin RPC credentials
         if let Some(ref cookie_file) = cli.rpc_cookie_file {
-            // Read credentials from cookie file
+            // Use explicitly provided cookie file
             let (username, password) = read_cookie_file(cookie_file)
                 .map_err(|e| ConfigError::Message(format!("Failed to read cookie file: {e}")))?;
             builder = builder
                 .set_override("bitcoin_rpc.username", username)?
                 .set_override("bitcoin_rpc.password", password)?;
-        } else {
+        } else if cli.rpc_username.is_some() || cli.rpc_password.is_some() {
             // Use username/password if provided
             if let Some(ref username) = cli.rpc_username {
                 builder = builder.set_override("bitcoin_rpc.username", username.clone())?;
             }
             if let Some(ref password) = cli.rpc_password {
                 builder = builder.set_override("bitcoin_rpc.password", password.clone())?;
+            }
+        } else {
+            // Try to use default Bitcoin cookie file if no credentials provided
+            let default_cookie = dirs::home_dir()
+                .map(|home| home.join(".bitcoin").join(".cookie"))
+                .filter(|path| path.exists());
+
+            if let Some(cookie_path) = default_cookie {
+                if let Ok((username, password)) = read_cookie_file(&cookie_path.to_string_lossy()) {
+                    tracing::info!(
+                        "Using default Bitcoin cookie file: {}",
+                        cookie_path.display()
+                    );
+                    builder = builder
+                        .set_override("bitcoin_rpc.username", username)?
+                        .set_override("bitcoin_rpc.password", password)?;
+                }
+                // Silently continue if default cookie can't be read
             }
         }
 

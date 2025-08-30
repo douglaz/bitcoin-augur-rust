@@ -29,7 +29,7 @@ pub struct Cli {
     #[arg(long)]
     pub rpc_password: Option<String>,
 
-    /// Path to Bitcoin Core cookie file (alternative to username/password)
+    /// Path to Bitcoin Core cookie file (defaults to ~/.bitcoin/.cookie if no auth provided)
     #[arg(long)]
     pub rpc_cookie_file: Option<String>,
 
