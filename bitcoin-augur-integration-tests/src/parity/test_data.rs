@@ -8,22 +8,22 @@ pub struct TestDataGenerator;
 impl TestDataGenerator {
     /// Port of Kotlin TestUtils.createDefaultBaseWeights()
     /// Creates a distribution of transaction weights at various fee rates
-    pub fn create_default_base_weights() -> HashMap<OrderedFloat<f64>, u64> {
-        use ordered_float::OrderedFloat;
+    pub fn create_default_base_weights() -> HashMap<bitcoin_augur::OrderedFloat, u64> {
+        use bitcoin_augur::OrderedFloat;
         let mut weights = HashMap::new();
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         // Low fee range (0.5 - 4.0 sat/vB)
         for fee in 1..=8 {
             let fee_rate = fee as f64 * 0.5;
-            let weight = 500_000 + (rng.gen::<f64>() * 1_500_000.0) as u64;
+            let weight = 500_000 + (rng.random::<f64>() * 1_500_000.0) as u64;
             weights.insert(OrderedFloat(fee_rate), weight);
         }
 
         // Medium fee range (4.5 - 16.0 sat/vB) with spikes
         for fee in 9..=32 {
             let fee_rate = fee as f64 * 0.5;
-            let base_weight = 2_000_000 + (rng.gen::<f64>() * 5_000_000.0) as u64;
+            let base_weight = 2_000_000 + (rng.random::<f64>() * 5_000_000.0) as u64;
             let weight = match fee_rate as u32 {
                 5 => base_weight * 3,  // Spike at 5 sat/vB
                 8 => base_weight * 4,  // Major spike at 8 sat/vB
@@ -38,7 +38,7 @@ impl TestDataGenerator {
         // High fee range (16.5 - 32.0 sat/vB)
         for fee in 33..=64 {
             let fee_rate = fee as f64 * 0.5;
-            let base_weight = 1_000_000 + (rng.gen::<f64>() * 3_000_000.0) as u64;
+            let base_weight = 1_000_000 + (rng.random::<f64>() * 3_000_000.0) as u64;
             let weight = match fee_rate as u32 {
                 20 => base_weight * 3, // Spike at 20 sat/vB
                 25 => base_weight * 4, // Major spike at 25 sat/vB
@@ -53,8 +53,8 @@ impl TestDataGenerator {
 
     /// Port of Kotlin TestUtils.createHighInflowRates()
     #[allow(dead_code)]
-    pub fn create_high_inflow_rates() -> HashMap<OrderedFloat<f64>, u64> {
-        use ordered_float::OrderedFloat;
+    pub fn create_high_inflow_rates() -> HashMap<bitcoin_augur::OrderedFloat, u64> {
+        use bitcoin_augur::OrderedFloat;
         let mut rates = HashMap::new();
 
         for fee in 1..=64 {
@@ -76,8 +76,8 @@ impl TestDataGenerator {
 
     /// Port of Kotlin TestUtils.createVeryLowInflowRates()
     #[allow(dead_code)]
-    pub fn create_very_low_inflow_rates() -> HashMap<OrderedFloat<f64>, u64> {
-        use ordered_float::OrderedFloat;
+    pub fn create_very_low_inflow_rates() -> HashMap<bitcoin_augur::OrderedFloat, u64> {
+        use bitcoin_augur::OrderedFloat;
         let mut rates = HashMap::new();
 
         for fee in 1..=64 {
@@ -172,5 +172,5 @@ pub struct TestTransaction {
     pub fee_rate: f64,
 }
 
-// Need to add ordered-float dependency for HashMap keys
-use ordered_float::OrderedFloat;
+// Using custom OrderedFloat from bitcoin-augur crate
+use bitcoin_augur::OrderedFloat;

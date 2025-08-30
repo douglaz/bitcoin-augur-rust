@@ -16,7 +16,7 @@ pub fn create_app(collector: Arc<MempoolCollector>) -> Router {
     Router::new()
         // Fee estimation endpoints
         .route("/fees", get(get_fees))
-        .route("/fees/target/:num_blocks", get(get_fee_for_target))
+        .route("/fees/target/{num_blocks}", get(get_fee_for_target))
         .route("/historical_fee", get(get_historical_fee))
         // Health check endpoint
         .route("/health", get(health_check))

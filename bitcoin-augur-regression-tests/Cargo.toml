@@ -33,19 +33,18 @@ tracing-subscriber = { workspace = true }
 
 # Utilities
 tempfile = "3.21"
-which = "7.0"
-colored = "2.2"
+which = "8.0"
+colored = "3.0"
 chrono = { workspace = true }
 
 # For floating point comparison
 float-cmp = "0.10"
-ordered-float = "4.6"
 
 # For concurrent tests
 futures = "0.3"
 
 # For random number generation
-rand = "0.8"
+rand = "0.9"
 
 # For snapshot testing
 insta = { version = "1.43", features = ["json", "redactions"] }
@@ -54,6 +53,6 @@ insta = { version = "1.43", features = ["json", "redactions"] }
 assert-json-diff = "2.0"
 
 # For mock RPC server
-axum = "0.7"
+axum = "0.8"
 
 [dev-dependencies]
