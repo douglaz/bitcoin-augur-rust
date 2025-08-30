@@ -1,7 +1,7 @@
 use bitcoin_augur::{BlockTarget, FeeEstimate};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// Response format for fee estimation API matching Kotlin implementation
 #[derive(Debug, Serialize, Deserialize)]
@@ -11,14 +11,14 @@ pub struct FeeEstimateResponse {
     pub mempool_update_time: String,
 
     /// Map of block targets to their probability estimates
-    pub estimates: HashMap<String, BlockTargetResponse>,
+    pub estimates: BTreeMap<String, BlockTargetResponse>,
 }
 
 /// Block target with probability-based fee estimates
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BlockTargetResponse {
     /// Map of probability percentages to fee rates
-    pub probabilities: HashMap<String, ProbabilityResponse>,
+    pub probabilities: BTreeMap<String, ProbabilityResponse>,
 }
 
 /// Fee rate for a specific probability
@@ -48,7 +48,7 @@ pub fn transform_fee_estimate(estimate: FeeEstimate) -> FeeEstimateResponse {
 }
 
 /// Transform internal BlockTarget to API format
-fn transform_block_target(target: BlockTarget) -> HashMap<String, ProbabilityResponse> {
+fn transform_block_target(target: BlockTarget) -> BTreeMap<String, ProbabilityResponse> {
     target
         .probabilities
         .into_iter()
@@ -82,7 +82,7 @@ fn format_timestamp(timestamp: DateTime<Utc>) -> String {
 pub fn empty_response(timestamp: DateTime<Utc>) -> FeeEstimateResponse {
     FeeEstimateResponse {
         mempool_update_time: format_timestamp(timestamp),
-        estimates: HashMap::new(),
+        estimates: BTreeMap::new(),
     }
 }
 
