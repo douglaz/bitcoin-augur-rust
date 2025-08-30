@@ -34,21 +34,18 @@ impl ServerManager {
             port = self.port
         );
 
-        // Create config for test server
-        let config_path = self.data_dir.join("test-config.yaml");
-        self.write_test_config(&config_path).await?;
-
-        // Start the server process
+        // Start the server process with CLI arguments
         let mut cmd = Command::new(&self.binary_path);
-        cmd.env("AUGUR_SERVER_CONFIG", &config_path)
-            .env("AUGUR_SERVER_PORT", self.port.to_string())
-            .env(
-                "AUGUR_PERSISTENCE_DATA_DIRECTORY",
-                self.data_dir.join("mempool"),
-            )
-            .env("AUGUR_TEST_MODE_ENABLED", "true") // Enable test mode
-            .env("AUGUR_TEST_MODE_USE_MOCK_DATA", "true") // Use mock data
-            .env("RUST_LOG", "info")
+        cmd.arg("--port")
+            .arg(self.port.to_string())
+            .arg("--host")
+            .arg("127.0.0.1")
+            .arg("--data-dir")
+            .arg(self.data_dir.join("mempool"))
+            .arg("--test-mode")
+            .arg("--use-mock-data")
+            .arg("--log-filter")
+            .arg("bitcoin_augur_server=info,bitcoin_augur=info")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .kill_on_drop(true);
@@ -115,37 +112,6 @@ impl ServerManager {
                 }
             }
         }
-    }
-
-    /// Write test configuration
-    async fn write_test_config(&self, path: &PathBuf) -> Result<()> {
-        let config = format!(
-            r#"# Test configuration for bitcoin-augur-server
-server:
-  port: {port}
-  host: "127.0.0.1"
-
-mempool:
-  refresh_interval_secs: 5
-  data_path: "{data_path}"
-  max_snapshots: 100
-
-bitcoin:
-  rpc_url: "http://localhost:38332"
-  rpc_user: "test"
-  rpc_password: "test"
-
-logging:
-  level: "info"
-  format: "json"
-"#,
-            port = self.port,
-            data_path = self.data_dir.join("mempool").display()
-        );
-
-        tokio::fs::create_dir_all(path.parent().unwrap()).await?;
-        tokio::fs::write(path, config).await?;
-        Ok(())
     }
 
     /// Get the server URL
