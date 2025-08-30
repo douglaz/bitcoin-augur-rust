@@ -41,7 +41,7 @@ impl TestCaseGenerator {
     /// Generate test cases
     pub fn generate(count: usize) -> Vec<TestCase> {
         let mut cases = Vec::new();
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         // Generate various test scenarios
         for i in 0..count {
@@ -117,7 +117,7 @@ impl TestCaseGenerator {
 
     /// Generate uniform distribution
     fn generate_uniform_distribution(rng: &mut impl Rng) -> TestCase {
-        let base_fee = rng.gen_range(1..50);
+        let base_fee = rng.random_range(1..50);
         let transactions: Vec<TestTransaction> = (0..100)
             .map(|_| TestTransaction {
                 weight: 2000,
@@ -131,7 +131,7 @@ impl TestCaseGenerator {
             description: format!("Uniform distribution at {base_fee} sat/vB"),
             mempool_state: MempoolState {
                 transactions,
-                block_height: 850000 + rng.gen_range(0..1000),
+                block_height: 850000 + rng.random_range(0..1000),
             },
             api_calls: vec![ApiCall {
                 method: "GET".to_string(),
@@ -148,7 +148,7 @@ impl TestCaseGenerator {
 
         // Low fee group
         for _ in 0..50 {
-            let fee_rate = rng.gen_range(1..5);
+            let fee_rate = rng.random_range(1..5);
             transactions.push(TestTransaction {
                 weight: 2000,
                 fee: (fee_rate * 500) as u64,
@@ -158,7 +158,7 @@ impl TestCaseGenerator {
 
         // High fee group
         for _ in 0..50 {
-            let fee_rate = rng.gen_range(50..100);
+            let fee_rate = rng.random_range(50..100);
             transactions.push(TestTransaction {
                 weight: 2000,
                 fee: (fee_rate * 500) as u64,
@@ -171,7 +171,7 @@ impl TestCaseGenerator {
             description: "Bimodal fee distribution".to_string(),
             mempool_state: MempoolState {
                 transactions,
-                block_height: 850000 + rng.gen_range(0..1000),
+                block_height: 850000 + rng.random_range(0..1000),
             },
             api_calls: vec![
                 ApiCall {
@@ -196,7 +196,7 @@ impl TestCaseGenerator {
 
         // Normal fees
         for _ in 0..90 {
-            let fee_rate = rng.gen_range(1..10);
+            let fee_rate = rng.random_range(1..10);
             transactions.push(TestTransaction {
                 weight: 2000,
                 fee: (fee_rate * 500) as u64,
@@ -206,7 +206,7 @@ impl TestCaseGenerator {
 
         // Spike fees
         for _ in 0..10 {
-            let fee_rate = rng.gen_range(200..500);
+            let fee_rate = rng.random_range(200..500);
             transactions.push(TestTransaction {
                 weight: 2000,
                 fee: (fee_rate * 500) as u64,
@@ -219,7 +219,7 @@ impl TestCaseGenerator {
             description: "Normal fees with high fee spike".to_string(),
             mempool_state: MempoolState {
                 transactions,
-                block_height: 850000 + rng.gen_range(0..1000),
+                block_height: 850000 + rng.random_range(0..1000),
             },
             api_calls: vec![
                 ApiCall {
@@ -242,9 +242,9 @@ impl TestCaseGenerator {
     fn generate_low_fee_congestion(rng: &mut impl Rng) -> TestCase {
         let transactions: Vec<TestTransaction> = (0..500)
             .map(|_| {
-                let fee_rate = rng.gen_range(1..5);
+                let fee_rate = rng.random_range(1..5);
                 TestTransaction {
-                    weight: rng.gen_range(1000..10000),
+                    weight: rng.random_range(1000..10000),
                     fee: fee_rate * 500,
                     fee_rate: Some(fee_rate as f64),
                 }
@@ -256,7 +256,7 @@ impl TestCaseGenerator {
             description: "Many low fee transactions".to_string(),
             mempool_state: MempoolState {
                 transactions,
-                block_height: 850000 + rng.gen_range(0..1000),
+                block_height: 850000 + rng.random_range(0..1000),
             },
             api_calls: vec![
                 ApiCall {
@@ -290,7 +290,7 @@ impl TestCaseGenerator {
             description: "Linearly increasing fees".to_string(),
             mempool_state: MempoolState {
                 transactions,
-                block_height: 850000 + rng.gen_range(0..1000),
+                block_height: 850000 + rng.random_range(0..1000),
             },
             api_calls: vec![
                 ApiCall {
@@ -311,11 +311,11 @@ impl TestCaseGenerator {
 
     /// Generate random distribution
     fn generate_random_distribution(rng: &mut impl Rng) -> TestCase {
-        let count = rng.gen_range(10..200);
+        let count = rng.random_range(10..200);
         let transactions: Vec<TestTransaction> = (0..count)
             .map(|_| {
-                let weight = rng.gen_range(500..10000);
-                let fee_rate = rng.gen_range(1..200) as f64;
+                let weight = rng.random_range(500..10000);
+                let fee_rate = rng.random_range(1..200) as f64;
                 let fee = ((fee_rate * weight as f64) / 4.0) as u64;
                 TestTransaction {
                     weight,
@@ -330,7 +330,7 @@ impl TestCaseGenerator {
             description: format!("Random distribution with {count} txs"),
             mempool_state: MempoolState {
                 transactions,
-                block_height: 850000 + rng.gen_range(0..1000),
+                block_height: 850000 + rng.random_range(0..1000),
             },
             api_calls: vec![ApiCall {
                 method: "GET".to_string(),
@@ -345,8 +345,8 @@ impl TestCaseGenerator {
     fn generate_large_mempool(rng: &mut impl Rng) -> TestCase {
         let transactions: Vec<TestTransaction> = (0..1000)
             .map(|_| {
-                let weight = rng.gen_range(1000..5000);
-                let fee_rate = rng.gen_range(1..50) as f64;
+                let weight = rng.random_range(1000..5000);
+                let fee_rate = rng.random_range(1..50) as f64;
                 let fee = ((fee_rate * weight as f64) / 4.0) as u64;
                 TestTransaction {
                     weight,
@@ -361,7 +361,7 @@ impl TestCaseGenerator {
             description: "Large mempool with 1000 transactions".to_string(),
             mempool_state: MempoolState {
                 transactions,
-                block_height: 850000 + rng.gen_range(0..1000),
+                block_height: 850000 + rng.random_range(0..1000),
             },
             api_calls: vec![
                 ApiCall {
@@ -392,8 +392,8 @@ impl TestCaseGenerator {
 
         // Small transactions
         for _ in 0..30 {
-            let weight = rng.gen_range(500..1500);
-            let fee_rate = rng.gen_range(5..20) as f64;
+            let weight = rng.random_range(500..1500);
+            let fee_rate = rng.random_range(5..20) as f64;
             transactions.push(TestTransaction {
                 weight,
                 fee: ((fee_rate * weight as f64) / 4.0) as u64,
@@ -403,8 +403,8 @@ impl TestCaseGenerator {
 
         // Medium transactions
         for _ in 0..40 {
-            let weight = rng.gen_range(1500..4000);
-            let fee_rate = rng.gen_range(3..15) as f64;
+            let weight = rng.random_range(1500..4000);
+            let fee_rate = rng.random_range(3..15) as f64;
             transactions.push(TestTransaction {
                 weight,
                 fee: ((fee_rate * weight as f64) / 4.0) as u64,
@@ -414,8 +414,8 @@ impl TestCaseGenerator {
 
         // Large transactions
         for _ in 0..30 {
-            let weight = rng.gen_range(4000..10000);
-            let fee_rate = rng.gen_range(1..10) as f64;
+            let weight = rng.random_range(4000..10000);
+            let fee_rate = rng.random_range(1..10) as f64;
             transactions.push(TestTransaction {
                 weight,
                 fee: ((fee_rate * weight as f64) / 4.0) as u64,
@@ -428,7 +428,7 @@ impl TestCaseGenerator {
             description: "Mixed transaction weights".to_string(),
             mempool_state: MempoolState {
                 transactions,
-                block_height: 850000 + rng.gen_range(0..1000),
+                block_height: 850000 + rng.random_range(0..1000),
             },
             api_calls: vec![ApiCall {
                 method: "GET".to_string(),
@@ -446,7 +446,7 @@ impl TestCaseGenerator {
 
         // Create transactions with steadily increasing fees
         for i in 0..100 {
-            let weight = rng.gen_range(1000..2000);
+            let weight = rng.random_range(1000..2000);
             let fee_rate = base_fee + (i as f64 * 0.5);
             transactions.push(TestTransaction {
                 weight,
@@ -486,8 +486,8 @@ impl TestCaseGenerator {
         // Create specific distribution to test probability ordering
         // High confidence transactions (95th percentile)
         for _ in 0..5 {
-            let weight = rng.gen_range(1000..1500);
-            let fee_rate = rng.gen_range(50..60) as f64;
+            let weight = rng.random_range(1000..1500);
+            let fee_rate = rng.random_range(50..60) as f64;
             transactions.push(TestTransaction {
                 weight,
                 fee: ((fee_rate * weight as f64) / 4.0) as u64,
@@ -497,8 +497,8 @@ impl TestCaseGenerator {
 
         // Medium confidence transactions (75th percentile)
         for _ in 0..25 {
-            let weight = rng.gen_range(1500..2500);
-            let fee_rate = rng.gen_range(20..30) as f64;
+            let weight = rng.random_range(1500..2500);
+            let fee_rate = rng.random_range(20..30) as f64;
             transactions.push(TestTransaction {
                 weight,
                 fee: ((fee_rate * weight as f64) / 4.0) as u64,
@@ -508,8 +508,8 @@ impl TestCaseGenerator {
 
         // Low confidence transactions (50th percentile)
         for _ in 0..70 {
-            let weight = rng.gen_range(1000..3000);
-            let fee_rate = rng.gen_range(5..15) as f64;
+            let weight = rng.random_range(1000..3000);
+            let fee_rate = rng.random_range(5..15) as f64;
             transactions.push(TestTransaction {
                 weight,
                 fee: ((fee_rate * weight as f64) / 4.0) as u64,
@@ -541,8 +541,8 @@ impl TestCaseGenerator {
         // Many transactions at various fee levels
         for fee_level in [1, 2, 5, 10, 20, 50, 100] {
             for _ in 0..50 {
-                let weight = rng.gen_range(800..3000);
-                let fee_rate = (fee_level as f64) + rng.gen_range(0..2) as f64;
+                let weight = rng.random_range(800..3000);
+                let fee_rate = (fee_level as f64) + rng.random_range(0..2) as f64;
                 transactions.push(TestTransaction {
                     weight,
                     fee: ((fee_rate * weight as f64) / 4.0) as u64,
@@ -584,7 +584,7 @@ impl TestCaseGenerator {
 
         for &fee_rate in &fee_rates {
             for _ in 0..10 {
-                let weight = rng.gen_range(1000..4000);
+                let weight = rng.random_range(1000..4000);
                 transactions.push(TestTransaction {
                     weight,
                     fee: ((fee_rate * weight as f64) / 4.0) as u64,

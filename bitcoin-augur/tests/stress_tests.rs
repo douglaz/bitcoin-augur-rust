@@ -32,9 +32,9 @@ fn generate_large_mempool(
     }
 
     // Shuffle to avoid any ordering bias in tests
+    use rand::rng;
     use rand::seq::SliceRandom;
-    use rand::thread_rng;
-    let mut rng = thread_rng();
+    let mut rng = rng();
     transactions.shuffle(&mut rng);
 
     transactions
