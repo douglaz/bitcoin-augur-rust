@@ -155,6 +155,7 @@ impl AppConfig {
     }
 
     /// Load configuration (deprecated - for backwards compatibility only)
+    #[allow(dead_code)]
     pub fn load() -> Result<Self, ConfigError> {
         // Return default config when called without CLI args
         // This is only used in tests now
@@ -209,7 +210,7 @@ mod tests {
         use clap::Parser;
 
         // Test that CLI args override defaults
-        let cli = Cli::try_parse_from(&[
+        let cli = Cli::try_parse_from([
             "bitcoin-augur-server",
             "--host",
             "127.0.0.1",

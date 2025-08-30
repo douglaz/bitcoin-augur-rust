@@ -31,10 +31,7 @@ async fn main() -> Result<()> {
 
     // Initialize tracing to stderr with CLI-provided filter
     tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from(cli.log_filter.as_str())
-                .context("Invalid log filter")?,
-        )
+        .with(tracing_subscriber::EnvFilter::from(cli.log_filter.as_str()))
         .with(
             tracing_subscriber::fmt::layer()
                 .with_writer(std::io::stderr)
