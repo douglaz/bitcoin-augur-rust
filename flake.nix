@@ -73,7 +73,7 @@
                 git config core.hooksPath .githooks
                 echo "✅ Git hooks configured automatically!"
                 echo "   • pre-commit: Checks code formatting"
-                echo "   • pre-push: Runs formatting, clippy, and tests"
+                echo "   • pre-push: Runs formatting, clippy, and checks for outdated dependencies"
                 echo ""
                 echo "To disable: git config --unset core.hooksPath"
                 echo ""
