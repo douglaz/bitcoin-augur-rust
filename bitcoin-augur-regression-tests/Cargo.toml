@@ -39,7 +39,7 @@ chrono = { workspace = true }
 
 # For floating point comparison
 float-cmp = "0.10"
-ordered-float = "4.6"
+ordered-float = "5.0"
 
 # For concurrent tests
 futures = "0.3"
