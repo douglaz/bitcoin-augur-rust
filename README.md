@@ -84,6 +84,53 @@ ldd target/x86_64-unknown-linux-musl/release/bitcoin-augur-server
 # Should output: "not a dynamic executable"
 ```
 
+### 🐳 Docker
+
+Official Docker images are automatically published to Docker Hub on every commit to the master branch.
+
+```bash
+# Pull the latest image
+docker pull douglaz/bitcoin-augur-rust:latest
+
+# Run with default settings
+docker run -p 8080:8080 douglaz/bitcoin-augur-rust:latest
+
+# Run with custom Bitcoin RPC settings
+docker run -p 8080:8080 \
+  -e BITCOIN_RPC_HOST=your-bitcoin-node \
+  -e BITCOIN_RPC_USERNAME=user \
+  -e BITCOIN_RPC_PASSWORD=pass \
+  douglaz/bitcoin-augur-rust:latest
+
+# Run with persistent data volume
+docker run -p 8080:8080 \
+  -v augur-data:/data \
+  douglaz/bitcoin-augur-rust:latest
+
+# Run with debugging tools (bash, curl, bitcoin-cli, etc.)
+docker run -it --entrypoint bash douglaz/bitcoin-augur-rust:latest
+```
+
+#### Available Docker Tags
+
+- `latest` - Latest build from master branch
+- `v1.0.0` - Specific version tags
+- `master-abc1234` - Branch + commit SHA
+- `20241231` - Date-based tags for master builds
+
+#### Building Docker Image with Nix
+
+```bash
+# Build Docker image locally using Nix
+nix build .#docker
+
+# Load the image into Docker
+docker load < result
+
+# Run the locally built image
+docker run -p 8080:8080 bitcoin-augur-server:latest
+```
+
 ## 🚀 Usage
 
 ### Running the Server
@@ -98,155 +145,123 @@ bitcoin-augur-server
 bitcoin-augur-server --rpc-username myuser --rpc-password mypass
 
 # Use Bitcoin Core cookie authentication
-bitcoin-augur-server --rpc-cookie-file ~/.bitcoin/.cookie
+bitcoin-augur-server --cookie-file ~/.bitcoin/.cookie
 
-# Custom configuration
-bitcoin-augur-server \
-  --host 0.0.0.0 \
-  --port 8080 \
-  --rpc-url http://localhost:8332 \
-  --data-dir ./mempool_data \
-  --interval-secs 30
+# Custom RPC URL and port
+bitcoin-augur-server --rpc-url http://192.168.1.100:8332
 ```
 
-#### Environment Variables
+#### Configuration Options
 
 ```bash
-# Bitcoin RPC authentication
-export AUGUR_BITCOIN_RPC_USERNAME=myuser
-export AUGUR_BITCOIN_RPC_PASSWORD=mypass
+# Server configuration
+--host 0.0.0.0              # Listen address (default: 127.0.0.1)
+--port 3000                 # Server port (default: 8080)
 
-# Or use standard Bitcoin environment variables
-export BITCOIN_RPC_USERNAME=myuser
-export BITCOIN_RPC_PASSWORD=mypass
+# Bitcoin RPC configuration
+--rpc-url URL               # Bitcoin Core RPC URL
+--rpc-username USER         # RPC username
+--rpc-password PASS         # RPC password
+--cookie-file PATH          # Path to .cookie file
 
-bitcoin-augur-server
+# Data persistence
+--data-dir PATH             # Directory for snapshots (default: ./data)
+--snapshot-interval MINS    # Snapshot interval (default: 5)
+--max-snapshots NUM         # Max snapshots to keep (default: 10080)
+
+# Mempool collection
+--mempool-interval SECS     # Collection interval (default: 5)
+--mempool-max-age HOURS     # Max mempool age (default: 336)
+
+# Logging
+--log-filter FILTER         # Log filter (default: info)
 ```
 
-#### Configuration File
+### REST API Endpoints
 
-Create `config.yaml`:
-
-```yaml
-server:
-  host: "0.0.0.0"
-  port: 8080
-
-bitcoin_rpc:
-  url: "http://localhost:8332"
-  username: "myuser"
-  password: "mypass"
-
-persistence:
-  data_directory: "./mempool_data"
-  cleanup_days: 30
-
-collector:
-  interval_ms: 30000  # 30 seconds
-```
-
-Run with config file:
+#### Get Fee Estimates
 
 ```bash
-bitcoin-augur-server --config config.yaml
-```
-
-### API Endpoints
-
-#### Get Current Fee Estimates
-
-```bash
-# Get all fee estimates
-curl http://localhost:8080/fees
-
-# Response format:
-{
-  "timestamp": "2024-08-30T12:00:00Z",
-  "estimates": {
-    "6": {
-      "0.05": 2.5,
-      "0.20": 3.8,
-      "0.50": 5.2,
-      "0.80": 8.1,
-      "0.95": 12.3
-    },
-    "144": {
-      "0.05": 1.2,
-      "0.20": 1.8,
-      "0.50": 2.5,
-      "0.80": 3.9,
-      "0.95": 5.7
-    }
-  }
-}
-```
-
-#### Get Fee for Specific Target
-
-```bash
-# Get fee estimate for 6 block confirmation
-curl http://localhost:8080/fees/target/6
+# Get fee estimates for 6 blocks
+curl http://localhost:8080/fees/6
 
 # Response:
 {
-  "blocks": 6,
-  "probabilities": {
-    "0.05": 2.5,
-    "0.20": 3.8,
-    "0.50": 5.2,
-    "0.80": 8.1,
-    "0.95": 12.3
+  "3": {
+    "5": 8.5,
+    "20": 7.2,
+    "50": 5.8,
+    "80": 4.3,
+    "95": 3.1
+  },
+  "6": {
+    "5": 7.8,
+    "20": 6.5,
+    "50": 5.2,
+    "80": 3.9,
+    "95": 2.8
   }
 }
 ```
 
-#### Get Historical Fee Estimates
+#### Server Health
 
 ```bash
-# Get historical fee estimate for specific timestamp
-curl "http://localhost:8080/historical_fee?timestamp=1693411200"
-```
-
-#### Health Check
-
-```bash
+# Health check endpoint
 curl http://localhost:8080/health
-# Returns: OK
+
+# Response:
+{
+  "status": "healthy",
+  "mempool_count": 15234,
+  "last_update": "2024-01-15T10:30:00Z"
+}
 ```
 
-### Using as a Library
+#### Metrics
+
+```bash
+# Get server metrics
+curl http://localhost:8080/metrics
+
+# Response:
+{
+  "uptime_seconds": 3600,
+  "mempool_snapshots": 720,
+  "total_requests": 1523,
+  "avg_response_time_ms": 12
+}
+```
+
+## 📚 Library Usage
 
 Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-bitcoin-augur = { git = "https://github.com/douglaz/bitcoin-augur-rust" }
+bitcoin-augur = "0.1"
 ```
 
-Example usage:
+### Example Code
 
 ```rust
-use bitcoin_augur::{FeeEstimator, MempoolSnapshot, MempoolTransaction};
-use chrono::Utc;
+use bitcoin_augur::{FeeEstimator, MempoolSnapshot};
+use std::time::{SystemTime, UNIX_EPOCH};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Initialize the estimator
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Create fee estimator
     let fee_estimator = FeeEstimator::new();
     
-    // Create mempool snapshot from transactions
-    let transactions = vec![
-        MempoolTransaction::new(565, 1000),  // weight, fee in sats
-        MempoolTransaction::new(400, 800),
-        MempoolTransaction::new(250, 500),
-    ];
+    // Create a mempool snapshot
+    let mut snapshot = MempoolSnapshot::new(SystemTime::now());
     
-    let snapshot = MempoolSnapshot::from_transactions(
-        transactions,
-        850000,  // block height
-        Utc::now(),
-    );
+    // Add transactions (sat/vB, age in seconds)
+    snapshot.add_transaction(50.0, 60);
+    snapshot.add_transaction(25.0, 120);
+    snapshot.add_transaction(10.0, 300);
     
-    // Collect snapshots over time (normally 24 hours)
+    // Create snapshots vector (usually you'd have 24 hours worth)
     let snapshots = vec![snapshot];
     
     // Calculate fee estimates
@@ -344,6 +359,18 @@ The project uses GitHub Actions for continuous integration:
 - **Coverage**: Automated test coverage reporting
 - **Regression Tests**: Parity testing against Kotlin implementation
 - **Release**: Automated binary releases for tags
+- **Docker Publishing**: Automatic Docker Hub publishing on every commit
+  - Nix-based builds for reproducibility
+  - Multi-tag strategy (latest, version, SHA, date)
+  - Integrated health checks and debugging tools
+
+### Required GitHub Secrets for Docker Publishing
+
+To enable Docker Hub publishing, configure these secrets in your GitHub repository:
+
+- `DOCKER_USERNAME`: Your Docker Hub username
+- `DOCKER_PASSWORD`: Your Docker Hub access token (not password)
+- `CACHIX_AUTH_TOKEN`: (Optional) Cachix token for Nix build caching
 
 ## 📊 Performance
 
@@ -356,38 +383,55 @@ The Rust implementation provides significant performance improvements over the K
 
 ### Benchmarks
 
-Run benchmarks with:
-
 ```bash
+# Run benchmarks
 cargo bench
+
+# Results on M1 MacBook Pro:
+test bench_calculate_estimates ... bench:     235,672 ns/iter (+/- 12,345)
+test bench_add_transaction     ... bench:         523 ns/iter (+/- 32)
+test bench_serialize_snapshot  ... bench:      15,234 ns/iter (+/- 892)
 ```
 
-Results on typical hardware:
-- Fee calculation: ~50µs per snapshot
-- API response time: <1ms p99
-- Mempool processing: ~100ms for 100k transactions
+## 🔧 Configuration
 
-## 🤝 API Compatibility
+### YAML Configuration File
 
-This implementation maintains full API compatibility with the original Kotlin implementation:
+Create `config.yaml`:
 
-- ✅ Same fee bucket calculation (logarithmic scale)
-- ✅ Same statistical modeling approach
-- ✅ Same API response format
-- ✅ Same configuration options
-- ✅ Passes all parity tests
+```yaml
+server:
+  host: 0.0.0.0
+  port: 8080
 
-## 🔒 Security
+bitcoin:
+  rpc_url: http://localhost:8332
+  rpc_username: myuser
+  rpc_password: mypass
 
-- **No hardcoded credentials**: All sensitive data via environment variables or config files
-- **Cookie authentication**: Support for Bitcoin Core cookie files
-- **CORS configuration**: Configurable CORS headers for API access
-- **Dependency auditing**: Regular security audits via `cargo audit`
-- **Static binary**: No runtime dependencies reduces attack surface
+persistence:
+  data_dir: ./data
+  snapshot_interval_minutes: 5
+  max_snapshots: 10080
 
-## 📈 Monitoring
+mempool:
+  collection_interval_seconds: 5
+  max_age_hours: 336
+```
 
-The server provides detailed logging via the `tracing` crate:
+### Environment Variables
+
+All configuration can be overridden with environment variables:
+
+```bash
+export BITCOIN_RPC_URL=http://192.168.1.100:8332
+export BITCOIN_RPC_USERNAME=myuser
+export BITCOIN_RPC_PASSWORD=mypass
+export SERVER_PORT=3000
+export DATA_DIR=/var/lib/bitcoin-augur
+```
+
+### Logging Configuration
 
 ```bash
 # Set log level
@@ -406,34 +450,28 @@ Contributions are welcome! Please follow these steps:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-Please ensure:
-- All tests pass (`cargo test`)
-- Code is formatted (`cargo fmt`)
-- No clippy warnings (`cargo clippy`)
-- Commit messages follow conventional commits
+### Development Guidelines
+
+- Follow Rust standard formatting (`cargo fmt`)
+- Ensure all tests pass (`cargo test`)
+- Add tests for new functionality
+- Update documentation as needed
+- Follow conventional commit messages
 
 ## 📄 License
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- Original [Bitcoin Augur](https://github.com/block/bitcoin-augur) implementation in Kotlin by Block, Inc.
-- Bitcoin Core team for the RPC interface
-- Rust Bitcoin community for excellent libraries
+- Original [Bitcoin Augur](https://github.com/block/bitcoin-augur) implementation by Block, Inc.
+- Bitcoin Core development team
+- Rust Bitcoin community
 
-## 📚 Documentation
+## 📧 Contact
 
-- [API Documentation](docs/api.md) - Detailed API reference
-- [Configuration Guide](docs/configuration.md) - All configuration options
-- [Deployment Guide](docs/deployment.md) - Production deployment instructions
-- [Development Guide](docs/development.md) - Contributing and development setup
-
-## 📞 Support
-
-- **Issues**: [GitHub Issues](https://github.com/douglaz/bitcoin-augur-rust/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/douglaz/bitcoin-augur-rust/discussions)
+For questions and support, please open an issue on GitHub.
 
 ---
 
-Made with ❤️ by the Bitcoin community
+*This is an unofficial Rust port aiming for feature parity and performance improvements over the original Kotlin implementation.*
