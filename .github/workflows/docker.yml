@@ -38,14 +38,6 @@ jobs:
             experimental-features = nix-command flakes
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
       
-      - name: Setup Nix cache
-        if: github.event_name != 'pull_request'
-        uses: cachix/cachix-action@v15
-        with:
-          name: bitcoin-augur
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-          skipPush: false
-      
       - name: Build Docker image with Nix
         run: |
           echo "Building Docker image with Nix..."
