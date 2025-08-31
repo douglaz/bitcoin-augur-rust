@@ -175,6 +175,7 @@
                 pkgs.iputils
                 pkgs.dnsutils
                 pkgs.gnutar
+                pkgs.file
               ];
               pathsToLink = [ "/bin" "/etc" "/share" ];
             };
