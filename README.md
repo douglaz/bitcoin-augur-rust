@@ -4,6 +4,8 @@
 [![CI](https://github.com/douglaz/bitcoin-augur-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/douglaz/bitcoin-augur-rust/actions/workflows/ci.yml)
 [![Test Coverage](https://github.com/douglaz/bitcoin-augur-rust/actions/workflows/coverage.yml/badge.svg)](https://github.com/douglaz/bitcoin-augur-rust/actions/workflows/coverage.yml)
 
+> **Note**: This is an unofficial Rust port of the original [Bitcoin Augur](https://github.com/block/bitcoin-augur) library written in Kotlin by Block, Inc.
+
 A high-performance Rust implementation of Bitcoin Augur - a statistical fee estimation library that provides accurate Bitcoin transaction fee predictions by analyzing historical mempool data.
 
 ## 🚀 Features
