@@ -145,7 +145,9 @@
           bitcoin-augur-server = bitcoin-augur; # Alias for CI compatibility
           
           # Docker image with static binary and debugging tools
-          docker = pkgs.dockerTools.buildImage {
+          docker = let
+            second = 1000000000; # 1 second in nanoseconds
+          in pkgs.dockerTools.buildImage {
             name = "bitcoin-augur-server";
             tag = "latest";
             
@@ -197,9 +199,9 @@
               };
               Healthcheck = {
                 Test = [ "CMD" "${pkgs.curl}/bin/curl" "-f" "http://localhost:8080/health" ];
-                Interval = 30000000000; # 30 seconds in nanoseconds
-                Timeout = 3000000000;   # 3 seconds in nanoseconds
-                StartPeriod = 10000000000; # 10 seconds in nanoseconds
+                Interval = 30 * second; # 30 seconds
+                Timeout = 3 * second;   # 3 seconds
+                StartPeriod = 10 * second; # 10 seconds
                 Retries = 3;
               };
             };
