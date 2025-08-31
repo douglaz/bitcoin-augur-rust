@@ -15,12 +15,12 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: docker.io
+  REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push:
-    name: Build with Nix and Push to Docker Hub
+    name: Build with Nix and Push to GitHub Container Registry
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -58,13 +58,13 @@ jobs:
           docker load < ${{ env.NIX_DOCKER_IMAGE }}
           docker images bitcoin-augur-server
       
-      - name: Log in to Docker Hub
+      - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Extract metadata
         id: meta
@@ -99,16 +99,6 @@ jobs:
             docker push "$tag"
           done
       
-      - name: Push README to Docker Hub
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
-        uses: peter-evans/dockerhub-description@v4
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: ${{ github.repository }}
-          readme-filepath: ./README.md
-          short-description: "Bitcoin Augur - Statistical Bitcoin fee estimation service"
-
   test-image:
     name: Test Docker Image
     needs: build-and-push
