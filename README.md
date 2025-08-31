@@ -394,16 +394,6 @@ bitcoin-augur-server --log-filter "bitcoin_augur_server=debug,bitcoin_augur=info
 # Log levels: error, warn, info, debug, trace
 ```
 
-## 🗺️ Roadmap
-
-- [ ] WebSocket support for real-time fee updates
-- [ ] Prometheus metrics endpoint
-- [ ] Docker official image
-- [ ] gRPC API support
-- [ ] Multi-network support (testnet, signet)
-- [ ] Advanced fee prediction models
-- [ ] Web UI dashboard
-
 ## 🤝 Contributing
 
 Contributions are welcome! Please follow these steps:
