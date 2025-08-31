@@ -144,21 +144,63 @@
           default = bitcoin-augur;
           bitcoin-augur-server = bitcoin-augur; # Alias for CI compatibility
           
-          # Docker image with static binary
+          # Docker image with static binary and debugging tools
           docker = pkgs.dockerTools.buildImage {
             name = "bitcoin-augur-server";
             tag = "latest";
             
             copyToRoot = pkgs.buildEnv {
               name = "image-root";
-              paths = [ bitcoin-augur ];
-              pathsToLink = [ "/bin" ];
+              paths = [ 
+                bitcoin-augur
+                pkgs.bashInteractive
+                pkgs.coreutils
+                pkgs.curl
+                pkgs.cacert
+                pkgs.bitcoind
+                pkgs.jq
+                pkgs.netcat
+                pkgs.procps
+                pkgs.htop
+                pkgs.vim
+                pkgs.less
+                pkgs.gnugrep
+                pkgs.gawk
+                pkgs.gnused
+                pkgs.findutils
+                pkgs.which
+                pkgs.net-tools
+                pkgs.iputils
+                pkgs.dnsutils
+                pkgs.gnutar
+              ];
+              pathsToLink = [ "/bin" "/etc" "/share" ];
             };
             
             config = {
               Cmd = [ "/bin/bitcoin-augur-server" ];
+              Env = [
+                "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+                "SYSTEM_CERTIFICATE_PATH=${pkgs.cacert}/etc/ssl/certs"
+                "RUST_LOG=info"
+              ];
               ExposedPorts = {
                 "8080/tcp" = {};
+              };
+              WorkingDir = "/";
+              Labels = {
+                "org.opencontainers.image.title" = "Bitcoin Augur Server";
+                "org.opencontainers.image.description" = "Statistical Bitcoin fee estimation service";
+                "org.opencontainers.image.vendor" = "Bitcoin Augur";
+                "org.opencontainers.image.source" = "https://github.com/${self.owner or "bitcoin-augur"}/${self.repo or "bitcoin-augur-rust"}";
+                "org.opencontainers.image.documentation" = "https://github.com/${self.owner or "bitcoin-augur"}/${self.repo or "bitcoin-augur-rust"}#readme";
+              };
+              Healthcheck = {
+                Test = [ "CMD" "${pkgs.curl}/bin/curl" "-f" "http://localhost:8080/health" ];
+                Interval = 30000000000; # 30 seconds in nanoseconds
+                Timeout = 3000000000;   # 3 seconds in nanoseconds
+                StartPeriod = 10000000000; # 10 seconds in nanoseconds
+                Retries = 3;
               };
             };
           };
