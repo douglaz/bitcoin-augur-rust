@@ -96,11 +96,14 @@ jobs:
     needs: build-and-push
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    env:
+      REGISTRY: ghcr.io
     
     steps:
       - name: Test published image
         run: |
           # Pull the image we just pushed
+          echo "Pulling image: ${{ env.REGISTRY }}/${{ github.repository }}:latest"
           docker pull ${{ env.REGISTRY }}/${{ github.repository }}:latest
           
           # Test basic functionality
@@ -114,18 +117,53 @@ jobs:
           echo "Starting server..."
           docker run -d --name test-server \
             -p 8080:8080 \
+            -e RUST_LOG=debug \
             ${{ env.REGISTRY }}/${{ github.repository }}:latest
           
-          # Wait for server to start
-          sleep 10
+          # Show initial logs
+          echo "Initial server logs:"
+          docker logs test-server
+          
+          # Wait for server to be ready with retries
+          echo "Waiting for server to be ready..."
+          MAX_RETRIES=30
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if curl -f -s http://localhost:8080/health > /dev/null 2>&1; then
+              echo "✅ Server is ready after $((RETRY_COUNT + 1)) seconds"
+              break
+            fi
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "Waiting for server... (attempt $RETRY_COUNT/$MAX_RETRIES)"
+            sleep 1
+          done
+          
+          if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+            echo "❌ Server failed to become ready after $MAX_RETRIES seconds"
+            echo "Final server logs:"
+            docker logs test-server
+            echo ""
+            echo "Container status:"
+            docker ps -a | grep test-server
+            echo ""
+            echo "Testing direct curl to see response:"
+            curl -v http://localhost:8080/health || true
+            exit 1
+          fi
           
           # Test endpoints
           echo "Testing /health endpoint..."
-          curl -f http://localhost:8080/health || (docker logs test-server && exit 1)
+          curl -f http://localhost:8080/health || (echo "Health check failed"; docker logs test-server; exit 1)
           
           echo "Testing /fees/1 endpoint..."
-          curl -f http://localhost:8080/fees/1 || (docker logs test-server && exit 1)
+          curl -f http://localhost:8080/fees/1 || (echo "Fees endpoint failed"; docker logs test-server; exit 1)
+          
+          # Show final logs for debugging
+          echo "Final server logs:"
+          docker logs --tail 20 test-server
           
           # Clean up
+          echo "Cleaning up..."
           docker stop test-server
           docker rm test-server
