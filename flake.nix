@@ -23,6 +23,11 @@
           targets = [ "x86_64-unknown-linux-musl" ];
         };
 
+        # Minimal toolchain for building (no docs, analyzer, or src)
+        rustToolchainMinimal = pkgs.rust-bin.stable.latest.minimal.override {
+          targets = [ "x86_64-unknown-linux-musl" ];
+        };
+
       in
       {
         devShells.default = pkgs.mkShell {
@@ -86,8 +91,8 @@
         packages = rec {
           bitcoin-augur = let
             rustPlatformMusl = pkgs.makeRustPlatform {
-              cargo = rustToolchain;
-              rustc = rustToolchain;
+              cargo = rustToolchainMinimal;
+              rustc = rustToolchainMinimal;
             };
           in rustPlatformMusl.buildRustPackage {
             pname = "bitcoin-augur";
@@ -98,7 +103,7 @@
             
             nativeBuildInputs = with pkgs; [
               pkg-config
-              rustToolchain
+              rustToolchainMinimal
               pkgsStatic.stdenv.cc
             ];
             
