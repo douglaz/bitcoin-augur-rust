@@ -51,9 +51,21 @@ bitcoin-augur-rust/
 
 - **Rust** 1.80+ (for manual builds)
 - **Nix** (recommended for development)
+- **Docker** (for containerized deployment)
 - **Bitcoin Core** node with RPC enabled (for production use)
 
-### Quick Start with Nix (Recommended)
+### Quick Start with Docker (Easiest)
+
+```bash
+# Run with test mode (no Bitcoin Core required)
+docker run -p 8080:8080 ghcr.io/douglaz/bitcoin-augur-rust:latest --test-mode
+
+# Test the API
+curl http://localhost:8080/health
+curl http://localhost:8080/fees/target/6
+```
+
+### Quick Start with Nix (Recommended for Development)
 
 ```bash
 # Clone the repository
@@ -82,6 +94,133 @@ cargo build --release --target x86_64-unknown-linux-musl
 # Verify static linking
 ldd target/x86_64-unknown-linux-musl/release/bitcoin-augur-server
 # Should output: "not a dynamic executable"
+```
+
+## 🐳 Docker
+
+### Using Pre-built Images
+
+Pre-built Docker images are available from GitHub Container Registry:
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/douglaz/bitcoin-augur-rust:latest
+
+# Run with default settings (test mode)
+docker run -p 8080:8080 ghcr.io/douglaz/bitcoin-augur-rust:latest --test-mode
+
+# Run with Bitcoin Core connection
+docker run -p 8080:8080 \
+  -e RUST_LOG=info \
+  ghcr.io/douglaz/bitcoin-augur-rust:latest \
+  --rpc-url http://host.docker.internal:8332 \
+  --rpc-username myuser \
+  --rpc-password mypass
+
+# Run with persistent data
+docker run -p 8080:8080 \
+  -v $(pwd)/mempool_data:/mempool_data \
+  ghcr.io/douglaz/bitcoin-augur-rust:latest \
+  --data-dir /mempool_data
+```
+
+### Building Docker Image with Nix
+
+The project uses Nix to build optimized Docker images with static binaries:
+
+```bash
+# Build Docker image using Nix
+nix build .#docker
+
+# Load the image into Docker
+docker load < result
+
+# Run the locally built image
+docker run -p 8080:8080 bitcoin-augur-server:latest
+
+# Build and load in one command
+nix build .#docker && docker load < result
+```
+
+### Docker Compose Example
+
+Create `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+
+services:
+  bitcoin-augur:
+    image: ghcr.io/douglaz/bitcoin-augur-rust:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - RUST_LOG=info
+    command:
+      - --rpc-url=http://bitcoind:8332
+      - --rpc-username=myuser
+      - --rpc-password=mypass
+      - --data-dir=/data
+    volumes:
+      - augur-data:/data
+    depends_on:
+      - bitcoind
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  bitcoind:
+    image: ruimarinho/bitcoin-core:24
+    ports:
+      - "8332:8332"
+    command:
+      - -regtest
+      - -rpcallowip=0.0.0.0/0
+      - -rpcbind=0.0.0.0
+      - -rpcuser=myuser
+      - -rpcpassword=mypass
+      - -server
+    volumes:
+      - bitcoin-data:/home/bitcoin/.bitcoin
+
+volumes:
+  augur-data:
+  bitcoin-data:
+```
+
+Run with Docker Compose:
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Check logs
+docker-compose logs -f bitcoin-augur
+
+# Stop services
+docker-compose down
+```
+
+### Container Features
+
+The Docker image includes:
+- **Static Binary**: Musl-compiled for minimal size (~50MB compressed)
+- **Health Check**: Built-in health endpoint monitoring
+- **SSL/TLS Support**: CA certificates included
+- **Debugging Tools**: curl, jq, and basic utilities for troubleshooting
+- **Bitcoin Core**: Optional bitcoind for testing (included in image)
+
+### Environment Variables
+
+```bash
+# Logging level
+RUST_LOG=debug|info|warn|error
+
+# SSL certificates (auto-configured)
+SSL_CERT_FILE=/etc/ssl/certs/ca-bundle.crt
+SYSTEM_CERTIFICATE_PATH=/etc/ssl/certs
 ```
 
 ## 🚀 Usage
@@ -395,6 +534,38 @@ bitcoin-augur-server --log-filter "bitcoin_augur_server=debug,bitcoin_augur=info
 
 # Log levels: error, warn, info, debug, trace
 ```
+
+## 🔄 CI/CD & Automated Builds
+
+### Continuous Integration
+
+The project uses GitHub Actions for comprehensive CI/CD:
+
+- **Testing**: Unit tests, integration tests, and regression tests on every push
+- **Code Quality**: Rustfmt, Clippy, and cargo-deny checks
+- **Security**: Automated vulnerability scanning with cargo-audit
+- **Coverage**: Code coverage reporting with Tarpaulin
+- **Docker Publishing**: Automatic image builds and publishing to GitHub Container Registry
+
+### Docker Image Publishing
+
+Docker images are automatically built and published on:
+- **Every push to master**: Tagged as `latest`
+- **Tagged releases**: Tagged with version (e.g., `v1.0.0`)
+- **Pull requests**: Build verification without publishing
+
+Images are available at:
+```
+ghcr.io/douglaz/bitcoin-augur-rust:latest
+ghcr.io/douglaz/bitcoin-augur-rust:v1.0.0
+ghcr.io/douglaz/bitcoin-augur-rust:master-<short-sha>
+```
+
+### Build Status
+
+[![CI](https://github.com/douglaz/bitcoin-augur-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/douglaz/bitcoin-augur-rust/actions/workflows/ci.yml)
+[![Docker Build](https://github.com/douglaz/bitcoin-augur-rust/actions/workflows/docker.yml/badge.svg)](https://github.com/douglaz/bitcoin-augur-rust/actions/workflows/docker.yml)
+[![Coverage](https://github.com/douglaz/bitcoin-augur-rust/actions/workflows/coverage.yml/badge.svg)](https://github.com/douglaz/bitcoin-augur-rust/actions/workflows/coverage.yml)
 
 ## 🤝 Contributing
 
