@@ -113,12 +113,13 @@ jobs:
           echo "Testing --help flag..."
           docker run --rm ${{ env.REGISTRY }}/${{ github.repository }}:latest --help
           
-          # Test running the server
-          echo "Starting server..."
+          # Test running the server in test mode (no Bitcoin Core required)
+          echo "Starting server in test mode..."
           docker run -d --name test-server \
             -p 8080:8080 \
             -e RUST_LOG=debug \
-            ${{ env.REGISTRY }}/${{ github.repository }}:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}:latest \
+            --test-mode --use-mock-data
           
           # Show initial logs
           echo "Initial server logs:"
@@ -158,6 +159,9 @@ jobs:
           
           echo "Testing /fees/1 endpoint..."
           curl -f http://localhost:8080/fees/1 || (echo "Fees endpoint failed"; docker logs test-server; exit 1)
+          
+          echo "Testing /fees endpoint..."
+          curl -f http://localhost:8080/fees || (echo "Fees endpoint failed"; docker logs test-server; exit 1)
           
           # Show final logs for debugging
           echo "Final server logs:"
