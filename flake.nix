@@ -180,7 +180,8 @@
             };
             
             config = {
-              Cmd = [ "/bin/bitcoin-augur-server" ];
+              Entrypoint = [ "/bin/bitcoin-augur-server" ];
+              Cmd = [];
               Env = [
                 "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
                 "SYSTEM_CERTIFICATE_PATH=${pkgs.cacert}/etc/ssl/certs"
