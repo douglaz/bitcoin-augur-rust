@@ -1,0 +1,11 @@
+# Configuration for cargo-audit security scanning
+# https://github.com/rustsec/rustsec/tree/main/cargo-audit
+
+[advisories]
+# Ignore RUSTSEC-2024-0436: paste crate is unmaintained
+# The paste crate is used by our dependencies:
+# - faux (dev dependency for mocking in tests)
+# - statrs (via nalgebra/simba chain for statistical computations)
+# This is not a security vulnerability, just an unmaintained package.
+# The crate still works correctly and has no known security issues.
+ignore = ["RUSTSEC-2024-0436"]
