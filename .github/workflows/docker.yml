@@ -157,8 +157,8 @@ jobs:
           echo "Testing /health endpoint..."
           curl -f http://localhost:8080/health || (echo "Health check failed"; docker logs test-server; exit 1)
           
-          echo "Testing /fees/1 endpoint..."
-          curl -f http://localhost:8080/fees/1 || (echo "Fees endpoint failed"; docker logs test-server; exit 1)
+          echo "Testing /fees/target/1 endpoint..."
+          curl -f http://localhost:8080/fees/target/1 || (echo "Fees endpoint failed"; docker logs test-server; exit 1)
           
           echo "Testing /fees endpoint..."
           curl -f http://localhost:8080/fees || (echo "Fees endpoint failed"; docker logs test-server; exit 1)
