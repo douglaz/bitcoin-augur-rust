@@ -3,8 +3,6 @@
 [report]
 # Skip test files from coverage
 exclude-files = ["*/tests/*", "*/benches/*", "*/build.rs"]
-# Exclude integration test crate from coverage
-exclude = ["bitcoin-augur-integration-tests"]
 # Generate both HTML and LCOV reports
 out = ["Html", "Lcov", "Xml"]
 # Output directory for coverage reports

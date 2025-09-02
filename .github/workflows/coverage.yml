@@ -41,7 +41,6 @@ jobs:
           --out Xml \
           --output-dir target/coverage \
           --exclude-files "*/tests/*" "*/benches/*" \
-          --exclude bitcoin-augur-integration-tests \
           --timeout 300 \
           --skip-clean
     

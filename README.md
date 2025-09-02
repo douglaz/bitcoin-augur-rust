@@ -41,8 +41,7 @@ bitcoin-augur-rust/
 │   │   ├── persistence/          # Snapshot storage
 │   │   └── service/              # Mempool collector service
 │   └── config/                   # Configuration files
-├── bitcoin-augur-regression-tests/ # Regression test suite
-└── bitcoin-augur-integration-tests/# Integration tests with Kotlin version
+└── bitcoin-augur-regression-tests/ # Regression test suite
 ```
 
 ## 🛠️ Installation
@@ -433,9 +432,6 @@ cargo test -- --nocapture
 
 # Run specific test
 cargo test test_fee_estimation
-
-# Run integration tests
-cargo test --package bitcoin-augur-integration-tests
 
 # Run benchmarks
 cargo bench
