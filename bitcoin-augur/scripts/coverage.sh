@@ -62,7 +62,7 @@ TARPAULIN_CMD="cargo tarpaulin"
 TARPAULIN_CMD="$TARPAULIN_CMD --out $OUTPUT_FORMATS"
 TARPAULIN_CMD="$TARPAULIN_CMD --output-dir target/coverage"
 TARPAULIN_CMD="$TARPAULIN_CMD --exclude-files '*/tests/*' '*/benches/*' '*/build.rs'"
-TARPAULIN_CMD="$TARPAULIN_CMD --exclude bitcoin-augur-integration-tests"
+# No additional excludes needed
 TARPAULIN_CMD="$TARPAULIN_CMD --timeout 120"
 TARPAULIN_CMD="$TARPAULIN_CMD --skip-clean"
 TARPAULIN_CMD="$TARPAULIN_CMD --print-summary"
