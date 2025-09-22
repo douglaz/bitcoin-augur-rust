@@ -67,7 +67,7 @@ mockito = "1.7"
 wiremock = "0.6"
 
 # Test utilities
-tempfile = "3.21"
+tempfile = "3.22"
 tower = { workspace = true }
 serial_test = "3.2"
 pretty_assertions = "1.4"
