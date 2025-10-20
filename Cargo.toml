@@ -21,10 +21,10 @@ anyhow = "1.0"
 
 # Numerical and statistical
 ndarray = { version = "0.16", features = ["serde"] }
-statrs = "0.17"
+statrs = "0.18"
 
 # Async runtime
-tokio = { version = "1.47", features = ["full"] }
+tokio = { version = "1.48", features = ["full"] }
 
 # HTTP and networking
 axum = { version = "0.8", features = ["macros"] }
@@ -33,7 +33,7 @@ tower-http = { version = "0.6", features = ["trace", "cors"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 
 # Configuration
-config = { version = "0.14", features = ["yaml"] }
+config = { version = "0.15", features = ["yaml"] }
 serde_yaml = "0.9"
 
 # Logging
@@ -42,7 +42,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 
 # Testing
 proptest = "1.8"
-criterion = { version = "0.5", features = ["html_reports"] }
+criterion = { version = "0.7", features = ["html_reports"] }
 
 # For static builds
 openssl = { version = "0.10", features = ["vendored"] }

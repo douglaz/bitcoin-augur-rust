@@ -32,7 +32,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 # Utilities
-tempfile = "3.22"
+tempfile = "3.23"
 which = "8.0"
 colored = "3.0"
 chrono = { workspace = true }
