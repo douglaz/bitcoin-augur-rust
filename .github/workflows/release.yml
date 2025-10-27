@@ -32,7 +32,7 @@ jobs:
         ldd bitcoin-augur-server-linux-x86_64 || echo "✅ Static binary (no dynamic dependencies)"
     
     - name: Upload Linux binary
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: bitcoin-augur-server-linux-x86_64
         path: bitcoin-augur-server-linux-x86_64
