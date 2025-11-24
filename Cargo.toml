@@ -24,7 +24,7 @@ ndarray = { version = "0.16", features = ["serde"] }
 statrs = "0.17"
 
 # Async runtime
-tokio = { version = "1.47", features = ["full"] }
+tokio = { version = "1.48", features = ["full"] }
 
 # HTTP and networking
 axum = { version = "0.8", features = ["macros"] }
@@ -41,7 +41,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 
 # Testing
-proptest = "1.8"
+proptest = "1.9"
 criterion = { version = "0.5", features = ["html_reports"] }
 
 # For static builds
