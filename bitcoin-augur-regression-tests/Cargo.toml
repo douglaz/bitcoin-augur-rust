@@ -32,9 +32,9 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 
 # Utilities
-tempfile = "3.22"
+tempfile = "3.25"
 which = "8.0"
-colored = "3.0"
+colored = "3.1"
 chrono = { workspace = true }
 
 # For floating point comparison
@@ -47,7 +47,7 @@ futures = "0.3"
 rand = "0.9"
 
 # For snapshot testing
-insta = { version = "1.43", features = ["json", "redactions"] }
+insta = { version = "1.46", features = ["json", "redactions"] }
 
 # For test execution
 assert-json-diff = "2.0"
